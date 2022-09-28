@@ -3,7 +3,7 @@ import ee
 import pycountry
 
 import stc_unicef_cpi.utils.constants as c
-
+import stc_unicef_cpi.utils.clean_text as ct
 
 class SatelliteImages:
     """Get Satellite Images From Google Earth Engine"""
@@ -52,11 +52,14 @@ class SatelliteImages:
 
         return proj["transform"], proj["crs"]
 
+    
+
     def task_config(self, geo, name, image, transform, proj) -> dict:
         """Determine countries parameters"""
+        name_country = ct.remove_accent(self.country)
         config = {
             "region": geo,
-            "description": f"{name}_{self.country.lower()}_{self.res}",
+            "description": f"{name}_{name_country.lower()}_{self.res}",
             "crs": proj,
             "crsTransform": transform,
             "fileFormat": "GeoTIFF",
@@ -415,4 +418,5 @@ class SatelliteImages:
         self.get_pollution_data(transform, proj, ctry, geo, start_date, end_date)
         self.get_topography_data(transform, proj, ctry, geo)
         self.get_nighttime_data(transform, proj, ctry, geo, start_date, end_date)
-        self.get_healthcare_data(transform, proj, ctry, geo)
+        self.get_healthcare_data(transform, proj, ctry, geo) 
+        
