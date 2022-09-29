@@ -24,7 +24,7 @@ class SatelliteImages:
         :type end: str
         """
         country_record = pycountry.countries.search_fuzzy(country)[0]
-        self.country = country_record.name
+        self.country = ct.clean_string_gee(country_record.name)
         self.country_code = country_record.alpha_3
         self.folder = folder + "/" + self.country
         self.res = res
@@ -52,14 +52,11 @@ class SatelliteImages:
 
         return proj["transform"], proj["crs"]
 
-    
-
     def task_config(self, geo, name, image, transform, proj) -> dict:
         """Determine countries parameters"""
-        name_country = ct.remove_accent(self.country)
         config = {
             "region": geo,
-            "description": f"{name}_{name_country.lower()}_{self.res}",
+            "description": f"{name}_{self.country.lower()}_{self.res}",
             "crs": proj,
             "crsTransform": transform,
             "fileFormat": "GeoTIFF",
@@ -419,4 +416,4 @@ class SatelliteImages:
         self.get_topography_data(transform, proj, ctry, geo)
         self.get_nighttime_data(transform, proj, ctry, geo, start_date, end_date)
         self.get_healthcare_data(transform, proj, ctry, geo) 
-        
+
