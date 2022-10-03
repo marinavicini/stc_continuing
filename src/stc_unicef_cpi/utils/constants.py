@@ -36,12 +36,7 @@ if current_dir.name == "data" and current_dir.parent.name == "stc_unicef_cpi":
     # base directory for autoencoder models
     base_dir_model = Path.cwd().parent.parent.parent / "models"
     # external data
-    if Path("/scratch").is_dir():
-        base_ext_dir = Path("/scratch/fitzgeraldj")
-        base_ext_dir.mkdir(exist_ok=True)
-        ext_data = base_ext_dir / "external"
-    else:
-        ext_data = base_dir_data / "external"
+    ext_data = base_dir_data / "external"
     ext_data.mkdir(exist_ok=True)
 
     # interim data
@@ -57,10 +52,7 @@ if current_dir.name == "data" and current_dir.parent.name == "stc_unicef_cpi":
     raw_data.mkdir(exist_ok=True)
 
     # tiff files
-    if Path("/scratch").is_dir():
-        tiff_data = base_ext_dir / "tiff"
-    else:
-        tiff_data = ext_data / "tiff"
+    tiff_data = ext_data / "tiff"
     tiff_data.mkdir(exist_ok=True)
 
 else:
@@ -111,3 +103,43 @@ cutoff = 30
 serv_type = "mobile"
 serv_year = 2021
 serv_quart = 4
+
+# countries in Sub-saharan africa
+countries_ssf = ['Angola', 
+            'Benin', 'Botswana', 'Burkina Faso', 'Burundi',
+            'Cabo Verde', 'Cameroon', 'Central African Republic', 'Chad', 'Comoros', 'Congo, The Democratic Republic of the', 'Congo', "Côte d'Ivoire",
+            'Equatorial Guinea', 'Eritrea', 'Eswatini', 'Ethiopia', 
+            'Gabon', 'Gambia', 'Ghana', 'Guinea', 'Guinea-Bissau',
+            'Kenya', 
+            'Lesotho', 'Liberia', 
+            'Madagascar', 'Malawi', 'Mali', 'Mauritania', 'Mauritius', 'Mozambique',
+            'Namibia', 'Niger', 'Nigeria',
+            'Rwanda', 
+            'Sao Tome and Principe', 'Senegal', 'Seychelles', 'Sierra Leone', 'Somalia', 'South Africa', 'Sudan', 'South Sudan', 
+            'Tanzania', 'Togo', 
+            'Uganda',
+            'Zambia', 'Zimbabwe']
+
+# countries name that not match between pycountry library and gaul name
+# key -> pycountry version
+# value -> gaul version
+dic_pycountry_to_gaul = {'Cabo Verde':'Cape Verde',
+    'Tanzania, United Republic of': 'United Republic of Tanzania',
+    'Congo, The Democratic Republic of the':'Democratic Republic of the Congo',
+    'Eswatini':'Swaziland'}
+
+
+
+# URL
+# conflicts, version 2022
+url_conflict = "https://ucdp.uu.se/downloads/ged/ged221-csv.zip"
+# infrastructure, jun 2021
+url_infrastructure = "https://zenodo.org/record/4957647/files/CISI.zip?download=1"
+# Real GDP
+url_real_gdp = "https://figshare.com/ndownloader/files/31456837"
+# GDP PPP
+url_gdp_ppp = "https://datadryad.org/stash/downloads/file_stream/241958"
+# Electric consumption
+url_elec_cons = "https://figshare.com/ndownloader/files/31456843"
+# commuting, 
+"https://data.humdata.org/dataset/b7aaa3d7-cca2-4364-b7ce-afe3134194a2/resource/37c2353d-08a6-4cc2-8364-5fd9f42d6b64/download/data-for-good-at-meta-commuting-zones-july-2021.csv"

@@ -344,6 +344,8 @@ def preprocessed_commuting_zones(country, res, read_dir=c.ext_data) -> pd.DataFr
     :rtype: dataframe
     """
     commuting = pd.read_csv(Path(read_dir) / "commuting_zones.csv", low_memory=False)
+    # change name of columns since in the new version is geography and not geometry
+    commuting.rename(columns={'geography':'geometry'}, inplace=True)
     commuting = commuting[commuting["country"] == country]
     comm = list(commuting["geometry"])
     comm_zones = pd.concat(list(map(partial(geo.hexes_poly, res=res), comm)))
@@ -368,7 +370,7 @@ def append_features_to_hexes(
     tiff_dir=c.tiff_data,
     hyper_tuning=False,
 ) -> pd.DataFrame:
-    """Append features to hexagons withing a country
+    """Append features to hexagons within a country
     :param country: country of interest
     :type country: str
     :param res: grid resolution
