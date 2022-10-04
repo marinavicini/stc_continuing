@@ -142,4 +142,5 @@ url_gdp_ppp = "https://datadryad.org/stash/downloads/file_stream/241958"
 # Electric consumption
 url_elec_cons = "https://figshare.com/ndownloader/files/31456843"
 # commuting, 
-"https://data.humdata.org/dataset/b7aaa3d7-cca2-4364-b7ce-afe3134194a2/resource/37c2353d-08a6-4cc2-8364-5fd9f42d6b64/download/data-for-good-at-meta-commuting-zones-july-2021.csv"
+# url_commuting_zones = "https://data.humdata.org/dataset/b7aaa3d7-cca2-4364-b7ce-afe3134194a2/resource/37c2353d-08a6-4cc2-8364-5fd9f42d6b64/download/data-for-good-at-meta-commuting-zones-july-2021.csv"
+url_commuting_zones = "https://data.humdata.org/dataset/b7aaa3d7-cca2-4364-b7ce-afe3134194a2/resource/3c068b51-5f0d-4ead-80ba-97312ec034e4/download/data-for-good-at-meta-commuting-zones-august-2022.csv.csv"

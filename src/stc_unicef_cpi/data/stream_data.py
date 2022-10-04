@@ -65,7 +65,7 @@ class GoogleEarthEngineStreamer(StreamerObject):
             ge.SatelliteImages(
                 self.country, self.folder, self.res, self.start, self.end
             )
-        else:
+        else: 
             file_name = "cpi_poptotal_" + self.country.lower() + "_500.tif"
             if os.path.exists(Path(self.wd) / file_name):
                 self.logging.info(
@@ -108,11 +108,11 @@ class EconomicStreamer(StreamerObject):
                 "elec_cons",
                 "commuting_zones.csv",
             ]
-            if self.country == "Nigeria":
-                file_names += [
-                    "nga_education",
-                    "nga_health.csv",
-                ]
+            # if self.country == "Nigeria":
+            #     file_names += [
+            #         "nga_education",
+            #         "nga_health.csv",
+            #     ]
             if all([(Path(self.read_path) / fname).exists() for fname in file_names]):
                 self.logging.info(
                     print(
@@ -173,6 +173,8 @@ class RoadDensityStreamer(StreamerObject):
         self.implement()
 
     def implement(self):
+
+        g.create_folder(Path(self.read_path)/'road_density')
         file_name = (
             "road_density_" + self.country.lower() + "_res" + str(self.res) + ".csv"
         )
@@ -183,7 +185,7 @@ class RoadDensityStreamer(StreamerObject):
                 )
             )
             rd = osm.get_road_density(self.country, self.res)
-            rd.to_csv(Path(self.read_path) / file_name, index=False)
+            rd.to_csv(Path(self.read_path) /'road_density'/ file_name, index=False)
         else:
             if os.path.exists(f"{self.read_path}/{file_name}"):
                 self.logging.info(
@@ -200,12 +202,12 @@ class RoadDensityStreamer(StreamerObject):
                 print(art("coffee"))
                 rd = osm.get_road_density(self.country, self.res)
                 print(rd)
-                rd.to_csv(Path(self.read_path) / file_name, index=False)
+                rd.to_csv(Path(self.read_path) /'road_density'/ file_name, index=False)
 
 
 @g.timing
 class SpeedTestStreamer(StreamerObject):
-    """Stream data from Open Street Map"""
+    """Stream data of Speed Test Url From Ookla"""
 
     def __init__(
         self,
@@ -253,7 +255,7 @@ class SpeedTestStreamer(StreamerObject):
 
 @g.timing
 class OpenCellStreamer(StreamerObject):
-    """Stream data from Open Street Map"""
+    """Stream data from Open Cell id"""
 
     def __init__(self, country, force, read_path, logging):
         super().__init__(country, force, read_path)

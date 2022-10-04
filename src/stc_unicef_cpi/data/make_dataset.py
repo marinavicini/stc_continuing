@@ -513,9 +513,11 @@ def append_features_to_hexes(
         logger.info("Recreating road density estimates...")
         road_file_name = "road_density_" + country.lower() + "_res" + str(res) + ".csv"
         rd = osm.get_road_density(country, res)
-        rd.to_csv(Path(read_dir) / road_file_name, index=False)
+        # CHECK!!!
+        g.create_folder(Path(read_dir)/'road_density')
+        rd.to_csv(Path(read_dir) /'road_density'/ road_file_name, index=False)
     logger.info("Reading road density estimates...")
-    road = pd.read_csv(Path(read_dir) / f"road_density_{country.lower()}_res{res}.csv")
+    road = pd.read_csv(Path(read_dir) /'road_density'/ f"road_density_{country.lower()}_res{res}.csv")
 
     # Speed Test
     logger.info("Reading speed test estimates...")
