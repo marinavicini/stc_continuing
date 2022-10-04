@@ -48,7 +48,7 @@ def get_opencell_url(country, token):
 
 def get_cell_data(country, save_path):
     """get_cell_data _summary_
-    :param country: _description_
+    :param country: _description_ 
     :type country: _type_
     :param token: _description_
     :type token: _type_

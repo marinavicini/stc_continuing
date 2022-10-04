@@ -10,6 +10,7 @@ import shapely.wkt
 from pyproj import Geod
 from shapely import geometry, wkt
 from shapely.geometry.polygon import Polygon
+import pycountry
 
 # resolution and area of hexagon in km2
 res_area = {
@@ -132,7 +133,10 @@ def get_hexes_for_ctry(ctry_name="Nigeria", res=7):
     )
     reader = shpreader.Reader(shpfilename)
     world = reader.records()
-    ctry_shp = next(filter(lambda x: x.attributes["NAME"] == ctry_name, world)).geometry
+    ctry_code = pycountry.countries.get(name=ctry_name).alpha_3
+    print(f'country name: {ctry_name}, country code: {ctry_code}')
+    
+    ctry_shp = next(filter(lambda x: x.attributes["ADM0_A3"] == ctry_code, world)).geometry
     try:
         # handle MultiPolygon
         ctry_polys = list(ctry_shp)
