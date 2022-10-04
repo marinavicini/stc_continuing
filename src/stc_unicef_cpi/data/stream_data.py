@@ -317,6 +317,7 @@ class RunStreamer(StreamerObject):
             f" -- Retrieving road density estimates for {self.country} at {self.res}... This might take a while..."
         )
         RoadDensityStreamer(self.country, self.force, self.read_path, self.res, logging)
+        print('Ho commentato Road Density e ci riprovo dopo')
 
         print(f" -- Retrieving speed test estimates for {self.country}...")
         SpeedTestStreamer(self.country, self.force, self.read_path, logging)

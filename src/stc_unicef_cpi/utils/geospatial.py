@@ -134,7 +134,7 @@ def get_hexes_for_ctry(ctry_name="Nigeria", res=7):
     reader = shpreader.Reader(shpfilename)
     world = reader.records()
     ctry_code = pycountry.countries.get(name=ctry_name).alpha_3
-    print(f'country name: {ctry_name}, country code: {ctry_code}')
+    # print(f'country name: {ctry_name}, country code: {ctry_code}')
     
     ctry_shp = next(filter(lambda x: x.attributes["ADM0_A3"] == ctry_code, world)).geometry
     try:
