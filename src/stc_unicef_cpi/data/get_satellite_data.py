@@ -422,11 +422,3 @@ class SatelliteImages:
         self.get_nighttime_data(transform, proj, ctry, geo, start_date, end_date)
         self.get_healthcare_data(transform, proj, ctry, geo) 
         
-
-country = 'Tanzania, United Republic of'
-folder = 'gee'
-res = 500
-start = "2010-01-01"
-end = "2020-01-01"
-
-SatelliteImages(country, folder, res, start, end)

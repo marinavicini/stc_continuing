@@ -84,6 +84,7 @@ def create_target_variable(
     country_code, res, lat, long, threshold, read_dir, copy_to_nbrs=False
 ) -> pd.DataFrame:
     """Create target variable
+    If data not available for selected country, returns None
     :param country_code: country code related to country of interest
     :type country_code: str
     :param res: resolution of country of interest
@@ -108,12 +109,14 @@ def create_target_variable(
         raise ValueError(f"Must have raw survey data available in {read_dir}")
     df = read_input_unicef(source)
     sub = select_country(df, country_code, lat, long)
-    try:
-        assert len(sub) > 0
-    except AssertionError:
-        raise ValueError(
+    
+    # If data is not available for selected country return None
+    if len(sub) == 0:
+        print(
             f"No geocoded data available in given dataset for {pycountry.countries.get(alpha_3=country_code).name}"
         )
+        return None
+
     # Create variables for two or more deprivations
     for k in range(2, 5):
         sub[f"dep_{k}_or_more_sev"] = sub["sumpoor_sev"] >= k
@@ -358,6 +361,7 @@ def preprocessed_commuting_zones(country, res, read_dir=c.ext_data) -> pd.DataFr
 @g.timing
 def append_features_to_hexes(
     country,
+    country_code,
     res,
     encoders,
     gpu,
@@ -373,6 +377,8 @@ def append_features_to_hexes(
     """Append features to hexagons within a country
     :param country: country of interest
     :type country: str
+    :param country_code: alpha_3 country code
+    :type country_code: str
     :param res: grid resolution
     :type res: int
     :param encoders: whether to append autoencoder features
@@ -421,7 +427,7 @@ def append_features_to_hexes(
     )
     logger.info("Finished data retrieval.")
     logger.info(
-        f"Please check your 'gee' folder in google drive and download all content to {read_dir}/gee. May take some time to appear."
+        f"Please check your {country_code} folder in google drive and download the folder to {read_dir}/gee. May take some time to appear."
     )
     logger.info("Check https://code.earthengine.google.com/tasks to monitor progress.")
 
@@ -474,7 +480,7 @@ def append_features_to_hexes(
 
     # Google Earth Engine
     logger.info("Retrieving features from google earth engine tif files...")
-    gee_files = glob.glob(str(Path(read_dir) / "gee" / f"*_{country.lower()}*.tif"))
+    gee_files = glob.glob(str(Path(read_dir) / "gee" / country_code / f"*_{country.lower()}*.tif"))
     max_bands = 3
     gee_nbands = np.zeros(len(gee_files))
     for idx, file in enumerate(gee_files):
@@ -683,6 +689,7 @@ def create_dataset(
     )
     complete = append_features_to_hexes(
         country,
+        country_code,
         res,
         encoders,
         gpu,
@@ -695,19 +702,29 @@ def create_dataset(
         tiff_dir=tiff_dir,
         hyper_tuning=hyper_tuning,
     )
-    print(f"Merging target variable to hexagons in {country}")
-    complete = complete.merge(train, on="hex_code", how="left")
-    print(f"Saving dataset to {save_dir}")
-    complete.to_csv(
-        Path(save_dir) / f"hexes_{country.lower()}_res{res}_thres{threshold}.csv",
-        index=False,
-    )
-    print("complete:", len(complete))
-    train_expanded.to_csv(
-        Path(save_dir) / f"expanded_{country.lower()}_res{res}_thres{threshold}.csv",
-        index=False,
-    )
-    print("Done!")
+    if train is None:
+        print('')
+        print(f"{country} does not have target variable, saving dataset with input features to {save_dir}")
+        complete.to_csv(
+            Path(save_dir) / f"hexes_{country.lower()}_res{res}_thres{threshold}.csv",
+            index=False,
+        )
+        print("complete:", len(complete))
+    else:
+        print(f"Merging target variable to hexagons in {country}")
+        complete = complete.merge(train, on="hex_code", how="left")
+        print(f"Saving dataset to {save_dir}")
+        complete.to_csv(
+            Path(save_dir) / f"hexes_{country.lower()}_res{res}_thres{threshold}.csv",
+            index=False,
+        )
+        print("complete:", len(complete))
+        train_expanded.to_csv(
+            Path(save_dir) / f"expanded_{country.lower()}_res{res}_thres{threshold}.csv",
+            index=False,
+        )
+        print("Done!")
+           
     return complete
 
 

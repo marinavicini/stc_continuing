@@ -4,6 +4,7 @@ import logging
 import os
 import warnings
 from pathlib import Path
+import pycountry
 
 import pandas as pd
 from art import *
@@ -66,22 +67,28 @@ class GoogleEarthEngineStreamer(StreamerObject):
                 self.country, self.folder, self.res, self.start, self.end
             )
         else: 
-            file_name = "cpi_poptotal_" + self.country.lower() + "_500.tif"
-            if os.path.exists(Path(self.wd) / file_name):
+            # GEE has another name for certain countries
+            country_code = pycountry.countries.get(name=self.country).alpha_3
+            country_gaul = c.dic_pycountry_to_gaul[self.country]
+            file_name = "cpi_poptotal_" + country_gaul.lower() + "_500.tif"
+
+            if os.path.exists(Path(self.wd) / country_code / file_name):
+                print('esiste')
                 self.logging.info(
                     print(
                         f" -- No need to download Google Earth Engine data! Satellite images of {self.country} are already downloaded."
                     )
                 )
             else:
+                print('non esiste')
                 self.logging.info(
                     g.PrettyLog(
                         f" -- Downloading satellite images of {self.country}..."
                     )
                 )
-                ge.SatelliteImages(
-                    self.country, self.folder, self.res, self.start, self.end
-                )
+                # ge.SatelliteImages(
+                #     self.country, self.folder, self.res, self.start, self.end
+                # )
 
 
 @g.timing
