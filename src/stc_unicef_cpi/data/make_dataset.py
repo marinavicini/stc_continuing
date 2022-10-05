@@ -769,7 +769,12 @@ if __name__ == "__main__":
         parser.print_help()
         sys.exit(0)
 
-    country = pycountry.countries.search_fuzzy(args.country)[0]
+    try:
+        country = pycountry.countries.get(name = args.country)
+    except:
+        print('Name incorrect, try with fuzzy search')
+        country = pycountry.countries.search_fuzzy(args.country)[0]
+        print(f'Correct name is {country.name}')
     country_name = country.name
     country_code = country.alpha_3
 

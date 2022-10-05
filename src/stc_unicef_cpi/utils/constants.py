@@ -144,3 +144,7 @@ url_elec_cons = "https://figshare.com/ndownloader/files/31456843"
 # commuting, 
 # url_commuting_zones = "https://data.humdata.org/dataset/b7aaa3d7-cca2-4364-b7ce-afe3134194a2/resource/37c2353d-08a6-4cc2-8364-5fd9f42d6b64/download/data-for-good-at-meta-commuting-zones-july-2021.csv"
 url_commuting_zones = "https://data.humdata.org/dataset/b7aaa3d7-cca2-4364-b7ce-afe3134194a2/resource/3c068b51-5f0d-4ead-80ba-97312ec034e4/download/data-for-good-at-meta-commuting-zones-august-2022.csv.csv"
+
+
+# Url country codes
+url_country_codes = 'https://pkgstore.datahub.io/core/country-codes/country-codes_csv/data/c4df23af89a9386f92cbddcd54bc9852/country-codes_csv.csv'

@@ -65,13 +65,12 @@ class GoogleEarthEngineStreamer(StreamerObject):
                 g.PrettyLog(f" -- Dowloading satellite images of {self.country}...")
             )
             ge.SatelliteImages(
-                self.country, self.folder, self.res, self.start, self.end
+                self.country, self.country_code, self.res, self.start, self.end
             )
         else: 
             # GEE has another name for certain countries
-            country_code = pycountry.countries.get(name=self.country).alpha_3
-            country_gaul = ct.get_country_name_gaul(self.country)
-            file_name = "cpi_poptotal_" + country_gaul.lower() + "_500.tif"
+            country_code = ct.get_alpha3_code(self.country)
+            file_name = "cpi_poptotal_" + self.country.lower() + "_500.tif"
 
             if os.path.exists(Path(self.wd) / country_code / file_name):
                 self.logging.info(
@@ -86,7 +85,7 @@ class GoogleEarthEngineStreamer(StreamerObject):
                     )
                 )
                 ge.SatelliteImages(
-                    self.country, self.folder, self.res, self.start, self.end
+                    self.country, self.res, self.start, self.end
                 )
 
 
@@ -316,8 +315,7 @@ class RunStreamer(StreamerObject):
         print(
             f" -- Retrieving road density estimates for {self.country} at {self.res}... This might take a while..."
         )
-        RoadDensityStreamer(self.country, self.force, self.read_path, self.res, logging)
-        print('Ho commentato Road Density e ci riprovo dopo')
+        # RoadDensityStreamer(self.country, self.force, self.read_path, self.res, logging)
 
         print(f" -- Retrieving speed test estimates for {self.country}...")
         SpeedTestStreamer(self.country, self.force, self.read_path, logging)
