@@ -10,7 +10,7 @@ class SatelliteImages:
     and download them to Google Drive in a folder called with the country code"""
 
     def __init__(
-        self, country, res=c.res_ee, start=c.start_ee, end=c.end_ee
+        self, country, res=c.res_ee, start=c.start_ee, end=c.end_ee, read_path = None
     ):
         """Initialize class
         :param country: country
@@ -22,26 +22,26 @@ class SatelliteImages:
         :param end: ending date
         :type end: str
         """
-        # country_record = pycountry.countries.search_fuzzy(country)[0]
-        # self.country = ct.get_country_name_gaul(country_record.name)
-
         self.country_code = ct.get_alpha3_code(country)
         self.country = ct.format_country_name(country)
-
-        # TODO: da automatizzare 
-        path_iso = '/mnt/c/Users/vicin/Desktop/DSSG/Project/stc_continuing/data/raw'
-        self.gaul_code = ct.iso_to_gaul_code(self.country_code, path_iso)
 
         self.folder = self.country_code
         self.res = res
         self.start = start
         self.end = end
+        self.read_path = read_path
         self.get_satellite_images()
 
     def get_country_boundaries(self):
         """Get countries boundaries"""
-        countries = ee.FeatureCollection("FAO/GAUL/2015/level0").select("ADM0_CODE")
-        ctry = countries.filter(ee.Filter.eq("ADM0_CODE", self.gaul_code))
+        if self.read_path is None:
+            countries = ee.FeatureCollection("FAO/GAUL/2015/level0").select("ADM0_NAME")
+            ctry = countries.filter(ee.Filter.eq("ADM0_NAME", self.country))
+        else:
+            gaul_code = ct.iso_to_gaul_code(self.country_code, self.read_path)
+            countries = ee.FeatureCollection("FAO/GAUL/2015/level0").select("ADM0_CODE")
+            ctry = countries.filter(ee.Filter.eq("ADM0_CODE", gaul_code))
+            
         geo = ctry.geometry()
 
         return ctry, geo
@@ -425,4 +425,4 @@ class SatelliteImages:
         self.get_pollution_data(transform, proj, ctry, geo, start_date, end_date)
         self.get_topography_data(transform, proj, ctry, geo)
         self.get_nighttime_data(transform, proj, ctry, geo, start_date, end_date)
-        
+    
