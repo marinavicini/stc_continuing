@@ -62,8 +62,6 @@ class GoogleEarthEngineStreamer(StreamerObject):
 
     def implement(self):
         if self.force:
-            print('Force')
-            print(f'force read path: {self.path}')
             self.logging.info(
                 g.PrettyLog(f" -- Dowloading satellite images of {self.country}...")
             )
@@ -72,24 +70,20 @@ class GoogleEarthEngineStreamer(StreamerObject):
             )
         else: 
             country_code = ct.get_alpha3_code(self.country)
-            print(country_code)
             file_name = "cpi_poptotal_" + self.country.lower() + "_500.tif"
 
             if os.path.exists(Path(self.wd) / country_code / file_name):
-                print('data already downloaded')
                 self.logging.info(
                     print(
                         f" -- No need to download Google Earth Engine data! Satellite images of {self.country} are already downloaded."
                     )
                 )
             else:
-                print('data not downloaded')
                 self.logging.info(
                     g.PrettyLog(
                         f" -- Downloading satellite images of {self.country}..."
                     )
                 )
-                print(f'path sent to satelliteImages is {self.read_path}')
                 ge.SatelliteImages(
                     self.country, self.res, self.start, self.end, self.read_path
                 )
@@ -198,7 +192,7 @@ class RoadDensityStreamer(StreamerObject):
             rd = osm.get_road_density(self.country, self.res)
             rd.to_csv(Path(self.read_path) /'road_density'/ file_name, index=False)
         else:
-            if os.path.exists(f"{self.read_path}/{file_name}"):
+            if os.path.exists(f"{self.read_path}/road_density/{file_name}"):
                 self.logging.info(
                     print(
                         f" -- No need to retrieve road density estimates! Estimates for {self.country} are already downloaded."
@@ -318,13 +312,10 @@ class RunStreamer(StreamerObject):
         print(f" -- Retrieving google earth engine images for {self.country}...")
         GoogleEarthEngineStreamer(self.country, self.force, self.read_path, logging)
 
-
-        quit()
-
         print(
             f" -- Retrieving road density estimates for {self.country} at {self.res}... This might take a while..."
         )
-        # RoadDensityStreamer(self.country, self.force, self.read_path, self.res, logging)
+        RoadDensityStreamer(self.country, self.force, self.read_path, self.res, logging)
 
         print(f" -- Retrieving speed test estimates for {self.country}...")
         SpeedTestStreamer(self.country, self.force, self.read_path, logging)

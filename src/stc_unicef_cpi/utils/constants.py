@@ -116,7 +116,7 @@ countries_ssf = ['Angola',
             'Namibia', 'Niger', 'Nigeria',
             'Rwanda', 
             'Sao Tome and Principe', 'Senegal', 'Seychelles', 'Sierra Leone', 'Somalia', 'South Africa', 'Sudan', 'South Sudan', 
-            'Tanzania', 'Togo', 
+            'Tanzania, United Republic of', 'Togo', 
             'Uganda',
             'Zambia', 'Zimbabwe']
 

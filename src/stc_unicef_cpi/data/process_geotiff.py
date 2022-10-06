@@ -24,6 +24,8 @@ from rasterio.windows import Window
 from tqdm.auto import tqdm
 from xarray import DataArray, Dataset
 
+import stc_unicef_cpi.utils.clean_text as ct
+
 
 def print_tif_metadata(
     rioxarray_rio_obj: Union[Dataset, DataArray, List[Dataset]],
@@ -64,6 +66,7 @@ def clip_tif_to_ctry(
     :param save_dir: Path to directory to save to, defaults to None (just plot)
     :type save_dir: Optional[Union[PathLike,str]], optional
     """
+    ctry_code = ct.get_alpha3_code(ctry_name)
     fname = Path(file_path).name
     # world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
     shpfilename = shpreader.natural_earth(
@@ -73,7 +76,7 @@ def clip_tif_to_ctry(
     world = reader.records()
     with rasterio.open(file_path, "r", masked=True) as tif_file:
         ctry_shp = next(
-            filter(lambda x: x.attributes["NAME"] == ctry_name, world)
+            filter(lambda x: x.attributes["ADM0_A3"] == ctry_code, world)
         ).geometry
         if tif_file.crs is not None and tif_file.crs != "EPSG:4326":
             # NB assumes that no CRS corresponds to EPSG:4326 (as standard)

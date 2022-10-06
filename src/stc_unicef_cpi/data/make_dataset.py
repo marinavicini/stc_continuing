@@ -27,6 +27,7 @@ import stc_unicef_cpi.utils.constants as c
 import stc_unicef_cpi.utils.general as g
 import stc_unicef_cpi.utils.geospatial as geo
 from stc_unicef_cpi.data.stream_data import RunStreamer
+import stc_unicef_cpi.utils.clean_text as ct
 
 try:
     from stc_unicef_cpi.features import get_autoencoder_features as gaf
@@ -216,12 +217,15 @@ def preprocessed_tiff_files(
     :param force: force clipping, defaults to False
     :type force: bool, optional
     """
+    country_code = ct.get_alpha3_code(country)
+    _out_dir = out_dir
+    out_dir = f'{out_dir}/{country_code}'
     g.create_folder(out_dir)
     # clip gdp ppp 30 arc sec
     print(" -- Clipping gdp pp 30 arc sec")
-    if not (Path(read_dir) / (country.lower() + "_gdp_ppp_30.tif")).exists() or force:
+    if not (Path(out_dir) / (country.lower() + "_gdp_ppp_30.tif")).exists() or force:
         net.netcdf_to_clipped_array(
-            Path(read_dir) / "gdp_ppp_30.nc", ctry_name=country, save_dir=read_dir
+            Path(read_dir) / "gdp_ppp_30.nc", ctry_name=country, save_dir=out_dir
         )
 
     # clip ec and gdp
@@ -231,7 +235,7 @@ def preprocessed_tiff_files(
         not all(
             [
                 (
-                    Path(read_dir) / (country.lower() + "_" + str(Path(tif).name))
+                    Path(out_dir) / (country.lower() + "_" + str(Path(tif).name))
                 ).exists()
                 for tif in tifs
             ]
@@ -239,7 +243,7 @@ def preprocessed_tiff_files(
         or force
     ):
         partial_func = partial(
-            pg.clip_tif_to_ctry, ctry_name=country, save_dir=read_dir
+            pg.clip_tif_to_ctry, ctry_name=country, save_dir=out_dir
         )
         list(map(partial_func, tifs))
 
@@ -259,20 +263,20 @@ def preprocessed_tiff_files(
         mapfunc = partial(change_name_reproject_tiff, country=country)
         list(map(mapfunc, econ_tiffs, attributes))
 
+
     # critical infrastructure data
     print(" -- Reprojecting critical infrastructure data")
-    cisi_ctry = Path(read_dir) / f"{country.lower()}_africa.tif"
+    cisi_ctry = Path(out_dir) / f"{country.lower()}_africa.tif"
     fname = Path(cisi_ctry).name
     if not (Path(out_dir) / fname).exists() or force:
         cisi = glob.glob(str(Path(read_dir) / "*" / "*" / "010_degree" / "africa.tif"))[
             0
         ]
-        pg.clip_tif_to_ctry(cisi, ctry_name=country, save_dir=read_dir)
-        p_r = Path(read_dir) / "gee" / f"cpi_poptotal_{country.lower()}_500.tif"
+        pg.clip_tif_to_ctry(cisi, ctry_name=country, save_dir=out_dir)
+        p_r = Path(read_dir) / "gee" / country_code / f"cpi_poptotal_{country.lower()}_500.tif"
         pg.rxr_reproject_tiff_to_target(
             cisi_ctry, p_r, Path(out_dir) / fname, verbose=True
         )
-
 
 @g.timing
 def preprocessed_speed_test(speed, res, country) -> pd.DataFrame:
@@ -292,14 +296,15 @@ def preprocessed_speed_test(speed, res, country) -> pd.DataFrame:
     )
     reader = shpreader.Reader(shpfilename)
     world = reader.records()
-    country = pycountry.countries.search_fuzzy(args.country)[0]
-    ctry_name = country.name
+    # country = pycountry.countries.search_fuzzy(args.country)[0]
+    # ctry_name = country.name
+    ctry_code = ct.get_alpha3_code(country)
     ctry_geom = next(
-        filter(lambda x: x.attributes["NAME"] == ctry_name, world)
+        filter(lambda x: x.attributes["ADM0_A3"] == ctry_code, world)
     ).geometry
     # now use low res to roughly clip
     world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
-    ctry = world[world.name == ctry_name]
+    ctry = world[world.iso_a3 == ctry_code]
     bd_series = speed.geometry.str.replace(r"POLYGON\s\(+|\)", "").str.split(r"\s|,\s")
     speed["min_x"] = bd_series.str[0].astype("float")
     speed["max_y"] = bd_series.str[-1].astype("float")
@@ -349,7 +354,14 @@ def preprocessed_commuting_zones(country, res, read_dir=c.ext_data) -> pd.DataFr
     commuting = pd.read_csv(Path(read_dir) / "commuting_zones.csv", low_memory=False)
     # change name of columns since in the new version is geography and not geometry
     commuting.rename(columns={'geography':'geometry'}, inplace=True)
-    commuting = commuting[commuting["country"] == country]
+    temp = commuting[commuting["country"] == country]
+    if temp.shape[0]==0:
+        # There are no communiting zones in that country or the country name is spelled differently
+        country_code = ct.get_alpha3_code(country)
+        continent_name = ct.get_commuting_continent(country_code)
+        commuting = commuting[commuting["region"] == continent_name]
+    else:
+        commuting = commuting[commuting["country"] == country]
     comm = list(commuting["geometry"])
     comm_zones = pd.concat(list(map(partial(geo.hexes_poly, res=res), comm)))
     comm_zones = comm_zones.merge(commuting, on="geometry", how="left")
@@ -457,7 +469,12 @@ def append_features_to_hexes(
     # Conflict Zones
     logger.info("Reading and computing conflict zone estimates...")
     cz = pd.read_csv(Path(read_dir) / "conflict/GEDEvent_v22_1.csv", low_memory=False)
-    cz = cz[cz.country == country]
+    temp = cz[cz.country == country]
+    # if temp has no elements it means that the country has a different name or there are no conflicts
+    if temp.shape[0]==0:
+        logger.info("Country has no conflicts or it is saved with another name")
+    else:
+        cz = temp
     cz = geo.get_hex_code(cz, "latitude", "longitude", res)
     cz = geo.create_geometry(cz, "latitude", "longitude")
     cz = geo.aggregate_hexagon(cz, "geometry", "n_conflicts", "count")
@@ -468,7 +485,7 @@ def append_features_to_hexes(
 
     # Economic data
     logger.info("Retrieving features from economic tif files...")
-    econ_files = glob.glob(str(Path(save_dir) / f"{country.lower()}*.tif"))
+    econ_files = glob.glob(str(Path(save_dir) / country_code / f"{country.lower()}*.tif"))
 
     econ = pg.agg_tif_to_df(
         ctry,
@@ -548,6 +565,8 @@ def append_features_to_hexes(
         .fillna(0)
         .join(cell.groupby("hex_code").avg_signal.mean())
     ).reset_index()
+
+    print(cell.columns)
 
     # Collected Data
     logger.info("Merging all features")

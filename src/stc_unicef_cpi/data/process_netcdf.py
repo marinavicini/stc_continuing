@@ -10,6 +10,7 @@ import numpy.typing as npt
 import rasterio
 import rasterio.mask
 
+import stc_unicef_cpi.utils.clean_text as ct
 
 def netcdf_to_clipped_array(
     file_path: Union[str, PathLike],
@@ -34,7 +35,7 @@ def netcdf_to_clipped_array(
     :return: Either None if save_dir is not None, or clipped array
     :rtype: Union[None, npt.NDArray]
     """
-
+    ctry_code = ct.get_alpha3_code(ctry_name)
     fname = Path(file_path).name
     # world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
     # use high res version to avoid clipping
@@ -45,7 +46,7 @@ def netcdf_to_clipped_array(
     world = reader.records()
     with rasterio.open(f"netcdf:{file_path}", "r", masked=True) as netf:
         ctry_shp = next(
-            filter(lambda x: x.attributes["NAME"] == ctry_name, world)
+            filter(lambda x: x.attributes["ADM0_A3"] == ctry_code, world)
         ).geometry
         if netf.crs is not None and netf.crs != "EPSG:4326":
             # NB assumes that no CRS corresponds to EPSG:4326 (as standard)
