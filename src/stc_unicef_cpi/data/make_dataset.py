@@ -531,6 +531,10 @@ def append_features_to_hexes(
     images = gee.merge(econ, on=["hex_code"], how="outer")
     del econ
 
+    # Child population
+    # TODO: make it in a function
+    images['child_pop'] = images[['M_0', 'M_1', 'M_5','M_10', 'F_0', 'F_1', 'F_5','F_10']].sum(axis=1) + 0.6 * images[['M_15', 'F_15']].sum(axis=1)
+
     # Road density
     if force:
         logger.info("Recreating road density estimates...")
@@ -734,15 +738,31 @@ def create_dataset(
         complete = complete.merge(train, on="hex_code", how="left")
         print(f"Saving dataset to {save_dir}")
         complete.to_csv(
-            Path(save_dir) / f"hexes_{country.lower()}_res{res}_thres{threshold}.csv",
+            Path(save_dir) / f"hexes_{country_code}_res{res}_thres{threshold}.csv",
             index=False,
         )
         print("complete:", len(complete))
         train_expanded.to_csv(
-            Path(save_dir) / f"expanded_{country.lower()}_res{res}_thres{threshold}.csv",
+            Path(save_dir) / f"expanded_{country_code}_res{res}_thres{threshold}.csv",
             index=False,
         )
+        train_expanded.drop(columns = ['hex_centroid','lat', 'long'], inplace=True)
+
+        # After choosing neigh or not neigh approach, delete this part
+        new_col_names = [col+'_neigh' for col in train_expanded.columns]
+        d = dict(zip(train_expanded.columns, new_col_names))
+        train_expanded.rename(columns=d, inplace=True)
+        complete = complete.merge(train_expanded, how='left', left_on='hex_code', right_on = 'hex_code_neigh')
+        complete.drop(columns='hex_code_neigh', inplace=True)
+        _save_dir = f'{save_dir}/final'
+        g.create_folder(_save_dir)
+        complete.to_csv(
+            Path(_save_dir) / f"hexes_{country_code}_res{res}_thres{threshold}_all.csv",
+            index=False,
+        )
+        
         print("Done!")
+
            
     return complete
 
