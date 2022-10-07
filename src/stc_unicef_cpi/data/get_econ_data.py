@@ -96,3 +96,10 @@ def download_econ_data(out_dir):
         print(" -- Retrieving commuting zones...")
         commuting_url = c.url_commuting_zones
         download_file(commuting_url, _out_dir / "commuting_zones.csv")
+
+    # Relative Wealth Index
+    if not(_out_dir/ "rwi").exists():
+        print(" -- Retrieving relative wealth index...")
+        out = f"{_out_dir}/rwi.zip"
+        url = 'https://data.humdata.org/dataset/76f2a2ea-ba50-40f5-b79c-db95d668b843/resource/bff723a4-6b55-4c51-8790-6176a774e13c/download/relative-wealth-index-april-2021.zip'
+        download_unzip(url, out)

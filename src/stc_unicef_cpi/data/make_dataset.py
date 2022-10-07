@@ -371,6 +371,33 @@ def preprocessed_commuting_zones(country, res, read_dir=c.ext_data) -> pd.DataFr
 
 
 @g.timing
+def preprocessed_rwi(rwi, country, res) -> pd.DataFrame:
+    hexes = geo.get_hexes_for_ctry(country, res)
+    hexes = pd.DataFrame(hexes, columns = ['hex_code'])
+    hexes = geo.get_poly_boundary(hexes, 'hex_code')
+    hex_gdf = gpd.GeoDataFrame(hexes, geometry="geometry")
+
+    rwi['geometry_qk'] = rwi.quadkey.apply(geo.get_quadkey_polygon)
+    rwi_gdf = gpd.GeoDataFrame(rwi, geometry="geometry_qk")
+
+    joined = gpd.sjoin(hex_gdf, rwi_gdf)
+    joined["geometry_qk"] = joined.quadkey.apply(geo.get_quadkey_polygon)
+
+    joined["perc_area"] = (
+        joined["geometry"].intersection(gpd.GeoSeries(joined["geometry_qk"])).area
+        / joined["geometry"].area
+    )
+
+    joined["rwi"] = joined["perc_area"] * joined["rwi"]
+    joined["rwi_error"] = joined["perc_area"] * joined["error"]
+
+    out = joined.groupby("hex_code", as_index=False).agg(
+            {"rwi": "sum", "rwi_error": "sum"}
+    )
+    return out[['hex_code', 'rwi', 'rwi_error']]
+
+
+@g.timing
 def append_features_to_hexes(
     country,
     country_code,
@@ -570,11 +597,13 @@ def append_features_to_hexes(
         .join(cell.groupby("hex_code").avg_signal.mean())
     ).reset_index()
 
-    print(cell.columns)
+    # Relative Wealth Index
+    rwi = pd.read_csv(f'{read_dir}/rwi/relative-wealth-index-april-2021/{country_code}_relative_wealth_index.csv')
+    rwi = preprocessed_rwi(rwi, country, res)
 
     # Collected Data
     logger.info("Merging all features")
-    dfs = [ctry, commuting, cz, road, speed, cell, images]
+    dfs = [ctry, commuting, cz, road, speed, cell, images, rwi]
     assert all(["hex_code" in df.columns for df in dfs])
     hexes = reduce(
         lambda left, right: pd.merge(left, right, on="hex_code", how="left"), dfs

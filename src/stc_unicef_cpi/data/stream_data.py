@@ -112,6 +112,7 @@ class EconomicStreamer(StreamerObject):
                 "real_gdp",
                 "elec_cons",
                 "commuting_zones.csv",
+                "rwi"
             ]
             # if self.country == "Nigeria":
             #     file_names += [

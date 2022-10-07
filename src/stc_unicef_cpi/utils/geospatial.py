@@ -10,7 +10,9 @@ import shapely.wkt
 from pyproj import Geod
 from shapely import geometry, wkt
 from shapely.geometry.polygon import Polygon
+from shapely.geometry import Point
 import pycountry
+from pyquadkey2 import quadkey as qk
 
 # resolution and area of hexagon in km2
 res_area = {
@@ -231,3 +233,16 @@ def hexes_poly(poly, res):
     df.rename(columns={0: "hex_code"}, inplace=True)
     df["geometry"] = poly
     return df
+
+def get_quadkey_polygon(qkey):
+    '''Get polygon associated with quadkey'''
+    # save string as quadkey
+    qkey = qk.QuadKey(str(qkey))
+    # get coordinates
+    n, w = qkey.to_geo(0)
+    s, e = qkey.to_geo(3)
+
+    poly_quadkey = Polygon(
+        [Point([w, n]), Point([e, n]), Point([e, s]), Point([w, s])]
+    )
+    return poly_quadkey
