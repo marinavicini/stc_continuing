@@ -134,14 +134,14 @@ def get_road_density(country, res):
     :rtype: dataframe
     """
     hexes = get_hexes_for_ctry(country, res=2)
-    coords = add_neighboring_hexagons(hexes)
     try:
         assert len(coords)>0
     except:
         print('Country small in size, try new approach')
         hexes = get_hexes_for_ctry(country, res=7)
-        coords = set([h3.h3_to_parent(x, 2) for x in hexes])
+        hexes = set([h3.h3_to_parent(x, 2) for x in hexes])
     
+    coords = add_neighboring_hexagons(hexes)
     overpass_results = assign_road_length_to_hex(coords)
     road_density = assign_cluster(overpass_results, country, res)
 
