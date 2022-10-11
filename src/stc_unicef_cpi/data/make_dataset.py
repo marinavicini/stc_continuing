@@ -300,7 +300,7 @@ def preprocessed_speed_test(speed, res, country) -> pd.DataFrame:
     # ctry_name = country.name
     ctry_code = ct.get_alpha3_code(country)
     ctry_geom = next(
-        filter(lambda x: x.attributes["ADM0_A3"] == ctry_code, world)
+        filter(lambda x: x.attributes["ADM0_ISO"] == ctry_code, world)
     ).geometry
     # now use low res to roughly clip
     world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
@@ -583,7 +583,7 @@ def append_features_to_hexes(
     # Open Cell Data
     logger.info("Reading open cell data...")
     cell = g.read_csv_gzip(
-        glob.glob(str(Path(read_dir) / f"{country.lower().replace(' ','_')}_*gz.tmp"))[
+        glob.glob(str(Path(read_dir) / f"cell_tower/{country.lower().replace(' ','_')}_*gz.tmp"))[
             0
         ]
     )
@@ -598,7 +598,7 @@ def append_features_to_hexes(
     ).reset_index()
 
     # Relative Wealth Index
-    rwi = pd.read_csv(f'{read_dir}/rwi/relative-wealth-index-april-2021/{country_code}_relative_wealth_index.csv')
+    rwi = pd.read_csv(f'{read_dir}/rwi/relative-wealth-index-april-2021/{country_code}_relative_wealth_index.csv', dtype = {'quadkey': str})
     rwi = preprocessed_rwi(rwi, country, res)
 
     # Collected Data
@@ -758,10 +758,15 @@ def create_dataset(
         print('')
         print(f"{country} does not have target variable, saving dataset with input features to {save_dir}")
         complete.to_csv(
-            Path(save_dir) / f"hexes_{country.lower()}_res{res}_thres{threshold}.csv",
+            Path(save_dir) / f"hexes_{country_code}_res{res}_thres{threshold}.csv",
             index=False,
         )
         print("complete:", len(complete))
+        # TO BE DELETED
+        complete.to_csv(
+            Path(save_dir) / f"final/NO_DHS/hexes_{country_code}_res{res}_thres{threshold}_all.csv",
+            index=False,
+        )
     else:
         print(f"Merging target variable to hexagons in {country}")
         complete = complete.merge(train, on="hex_code", how="left")
