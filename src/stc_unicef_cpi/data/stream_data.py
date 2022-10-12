@@ -70,7 +70,8 @@ class GoogleEarthEngineStreamer(StreamerObject):
             )
         else: 
             country_code = ct.get_alpha3_code(self.country)
-            file_name = "cpi_poptotal_" + self.country.lower() + "_500.tif"
+            country_name = ct.format_country_name(self.country)
+            file_name = "cpi_poptotal_" + country_name.lower() + "_500.tif"
 
             if os.path.exists(Path(self.wd) / country_code / file_name):
                 self.logging.info(
@@ -270,13 +271,14 @@ class OpenCellStreamer(StreamerObject):
 
     def implement(self):
         file_name = f"{self.country.lower()}_*.csv.gz.tmp"
+        save_path = f'{self.read_path}/cell_tower'
         if self.force:
             self.logging.info(
                 g.PrettyLog(f" -- Retrieving open cell id data for {self.country}...")
             )
-            cell.get_cell_data(self.country, self.read_path)
+            cell.get_cell_data(self.country, save_path)
         else:
-            if glob.glob(str(Path(self.read_path) / f"{file_name}")):
+            if glob.glob(str(Path(save_path) / f"{file_name}")):
                 self.logging.info(
                     print(
                         f" -- No need to retrieve open cell id data! Estimates for {self.country} are already downloaded."
@@ -288,7 +290,7 @@ class OpenCellStreamer(StreamerObject):
                         f" -- Retrieving open cell id data for {self.country}..."
                     )
                 )
-                cell.get_cell_data(self.country, self.read_path)
+                cell.get_cell_data(self.country, save_path)
 
 
 @g.timing

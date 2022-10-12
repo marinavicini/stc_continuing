@@ -273,7 +273,8 @@ def preprocessed_tiff_files(
             0
         ]
         pg.clip_tif_to_ctry(cisi, ctry_name=country, save_dir=out_dir)
-        p_r = Path(read_dir) / "gee" / country_code / f"cpi_poptotal_{country.lower()}_500.tif"
+        country_name = ct.format_country_name(country)
+        p_r = Path(read_dir) / "gee" / country_code / f"cpi_poptotal_{country_name.lower()}_500.tif"
         pg.rxr_reproject_tiff_to_target(
             cisi_ctry, p_r, Path(out_dir) / fname, verbose=True
         )
@@ -524,7 +525,8 @@ def append_features_to_hexes(
 
     # Google Earth Engine
     logger.info("Retrieving features from google earth engine tif files...")
-    gee_files = glob.glob(str(Path(read_dir) / "gee" / country_code / f"*_{country.lower()}*.tif"))
+    country_name = ct.format_country_name(country)
+    gee_files = glob.glob(str(Path(read_dir) / "gee" / country_code / f"*_{country_name.lower()}*.tif"))
     max_bands = 3
     gee_nbands = np.zeros(len(gee_files))
     for idx, file in enumerate(gee_files):
