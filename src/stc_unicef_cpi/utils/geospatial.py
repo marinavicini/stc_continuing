@@ -14,6 +14,8 @@ from shapely.geometry import Point
 import pycountry
 from pyquadkey2 import quadkey as qk
 
+import stc_unicef_cpi.utils.clean_text as ct
+
 # resolution and area of hexagon in km2
 res_area = {
     0: 4250546.8477000,
@@ -114,12 +116,20 @@ def aggregate_hexagon(df, col_to_agg, name_agg, type):
 def get_shape_for_ctry(ctry_name):
     # world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
     # ctry_shp = world[world.name == ctry_name]
+    ctry_code = ct.get_alpha3_code(ctry_name)
     shpfilename = shpreader.natural_earth(
         resolution="10m", category="cultural", name="admin_0_countries"
     )
     reader = shpreader.Reader(shpfilename)
     world = reader.records()
-    ctry_shp = next(filter(lambda x: x.attributes["NAME"] == ctry_name, world)).geometry
+    # print(f'country name: {ctry_name}, country code: {ctry_code}')
+    try:
+        # ctry_shp = next(filter(lambda x: x.attributes["NAME"] == ctry_name, world)).geometry
+        ctry_shp = next(filter(lambda x: x.attributes["ADM0_ISO"] == ctry_code, world)).geometry
+    except StopIteration:    
+        world = reader.records()
+        ctry_shp = next(filter(lambda x: x.attributes["ADM0_A3"] == ctry_code, world)).geometry
+
     return ctry_shp
 
 
@@ -130,15 +140,8 @@ def get_hexes_for_ctry(ctry_name="Nigeria", res=7):
     :param level: _description_, defaults to 7
     :type level: int, optional
     """
-    shpfilename = shpreader.natural_earth(
-        resolution="10m", category="cultural", name="admin_0_countries"
-    )
-    reader = shpreader.Reader(shpfilename)
-    world = reader.records()
-    ctry_code = pycountry.countries.get(name=ctry_name).alpha_3
-    # print(f'country name: {ctry_name}, country code: {ctry_code}')
+    ctry_shp = get_shape_for_ctry(ctry_name)
     
-    ctry_shp = next(filter(lambda x: x.attributes["ADM0_ISO"] == ctry_code, world)).geometry
     try:
         # handle MultiPolygon
         ctry_polys = list(ctry_shp)

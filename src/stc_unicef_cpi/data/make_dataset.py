@@ -292,17 +292,18 @@ def preprocessed_speed_test(speed, res, country) -> pd.DataFrame:
     :rtype: dataframe
     """
     logging.info("Clipping speed data to country - can take a couple of mins...")
-    shpfilename = shpreader.natural_earth(
-        resolution="10m", category="cultural", name="admin_0_countries"
-    )
-    reader = shpreader.Reader(shpfilename)
-    world = reader.records()
+    # shpfilename = shpreader.natural_earth(
+    #     resolution="10m", category="cultural", name="admin_0_countries"
+    # )
+    # reader = shpreader.Reader(shpfilename)
+    # world = reader.records()
     # country = pycountry.countries.search_fuzzy(args.country)[0]
     # ctry_name = country.name
     ctry_code = ct.get_alpha3_code(country)
-    ctry_geom = next(
-        filter(lambda x: x.attributes["ADM0_ISO"] == ctry_code, world)
-    ).geometry
+    ctry_geom = geo.get_shape_for_ctry(country)
+    # next(
+    #     filter(lambda x: x.attributes["ADM0_ISO"] == ctry_code, world)
+    # ).geometry
     # now use low res to roughly clip
     world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
     ctry = world[world.iso_a3 == ctry_code]
@@ -600,8 +601,15 @@ def append_features_to_hexes(
     ).reset_index()
 
     # Relative Wealth Index
-    rwi = pd.read_csv(f'{read_dir}/rwi/relative-wealth-index-april-2021/{country_code}_relative_wealth_index.csv', dtype = {'quadkey': str})
-    rwi = preprocessed_rwi(rwi, country, res)
+    path_rwi = f'{read_dir}/rwi/relative-wealth-index-april-2021/{country_code}_relative_wealth_index.csv'
+    if os.path.exists(path_rwi):
+        rwi = pd.read_csv(path_rwi, dtype = {'quadkey': str})
+        rwi = preprocessed_rwi(rwi, country, res)
+    else:
+        logger.error(f'RWI is not available for {country}')
+        print(f'RWI not available for {country}')
+        # RWI not available for country
+        rwi = pd.DataFrame([0],columns=['hex_code'])
 
     # Collected Data
     logger.info("Merging all features")
