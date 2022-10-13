@@ -292,30 +292,29 @@ def preprocessed_speed_test(speed, res, country) -> pd.DataFrame:
     :rtype: dataframe
     """
     logging.info("Clipping speed data to country - can take a couple of mins...")
-    # shpfilename = shpreader.natural_earth(
-    #     resolution="10m", category="cultural", name="admin_0_countries"
-    # )
-    # reader = shpreader.Reader(shpfilename)
-    # world = reader.records()
-    # country = pycountry.countries.search_fuzzy(args.country)[0]
-    # ctry_name = country.name
     ctry_code = ct.get_alpha3_code(country)
     ctry_geom = geo.get_shape_for_ctry(country)
-    # next(
-    #     filter(lambda x: x.attributes["ADM0_ISO"] == ctry_code, world)
-    # ).geometry
     # now use low res to roughly clip
     world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
     ctry = world[world.iso_a3 == ctry_code]
     bd_series = speed.geometry.str.replace(r"POLYGON\s\(+|\)", "").str.split(r"\s|,\s")
     speed["min_x"] = bd_series.str[0].astype("float")
     speed["max_y"] = bd_series.str[-1].astype("float")
-    minx, miny, maxx, maxy = ctry.bounds.values.T.squeeze()
+    if ctry.shape[0]>0: 
+        minx, miny, maxx, maxy = ctry.bounds.values.T.squeeze()
+    else:
+        # The lower res boundaries are not available for all countries
+        minx, miny, maxx, maxy = ctry_geom.bounds
+    # minx, miny, maxx, maxy = ctry.bounds.values.T.squeeze()
     # use rough bounds to restrict more or less to country
     speed = speed[
         speed.min_x.between(minx - 1e-1, maxx + 1e-1)
         & speed.max_y.between(miny - 1e-1, maxy + 1e-1)
     ].copy()
+    if speed.shape[0] == 0:
+        print(f'No speed data for {country}')
+        return pd.DataFrame(0, columns=['hex_code'])
+
     speed["geometry"] = speed.geometry.swifter.apply(shapely.wkt.loads)
     speed = gpd.GeoDataFrame(speed, crs="epsg:4326")
     # only now look for intersection, as expensive
@@ -324,6 +323,9 @@ def preprocessed_speed_test(speed, res, country) -> pd.DataFrame:
     except ValueError:
         # problem for single geometry
         ctry_geom = gpd.GeoDataFrame([ctry_geom], columns=["geometry"], crs="EPSG:4326")
+    finally:
+        logging.error(f'No speed data for {country}, returning empty dataframe')
+        return pd.DataFrame([0], columns=['hex_code'])
     speed = gpd.sjoin(speed, ctry_geom, how="inner", op="intersects").reset_index(
         drop=True
     )
