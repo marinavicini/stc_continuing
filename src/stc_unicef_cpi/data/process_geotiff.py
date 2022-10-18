@@ -24,8 +24,8 @@ from rasterio.windows import Window
 from tqdm.auto import tqdm
 from xarray import DataArray, Dataset
 
-import stc_unicef_cpi.utils.clean_text as ct
 
+import stc_unicef_cpi.utils.geospatial as geo
 
 def print_tif_metadata(
     rioxarray_rio_obj: Union[Dataset, DataArray, List[Dataset]],
@@ -66,7 +66,6 @@ def clip_tif_to_ctry(
     :param save_dir: Path to directory to save to, defaults to None (just plot)
     :type save_dir: Optional[Union[PathLike,str]], optional
     """
-    ctry_code = ct.get_alpha3_code(ctry_name)
     fname = Path(file_path).name
     # world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
     shpfilename = shpreader.natural_earth(
@@ -76,7 +75,7 @@ def clip_tif_to_ctry(
     world = reader.records()
     with rasterio.open(file_path, "r", masked=True) as tif_file:
         ctry_shp = next(
-            filter(lambda x: x.attributes["ADM0_A3"] == ctry_code, world)
+            filter(lambda x: x.attributes["NAME"] == ctry_name, world)
         ).geometry
         if tif_file.crs is not None and tif_file.crs != "EPSG:4326":
             # NB assumes that no CRS corresponds to EPSG:4326 (as standard)
@@ -421,13 +420,14 @@ def rast_to_agg_df(
             del array
             if verbose:
                 print("Aggregating...")
-            df = df.groupby(by="hex_code").agg({band: agg_fn for band in band_cols})
+            df = geo.aggregate_hexagon_fn(df, agg_fn)
+            # df = df.groupby(by="hex_code").agg({band: agg_fn for band in band_cols})
             if res_df is None:
                 res_df = df
             else:
                 if verbose:
                     print("Joining to previous aggregations...")
-                res_df = res_df.join(df, how="outer")
+                res_df = res_df.merge(df, how="outer")
                 del df
             ctr += max_bands
     res_df.dropna(how="all", inplace=True)  # type: ignore
@@ -542,9 +542,10 @@ def agg_tif_to_df(
                     ddf = ddf.drop(columns=["latitude", "longitude"])
                     print("Done!")
                     print("Aggregating within cells...")
-                    ddf = ddf.groupby("hex_code").agg(
-                        {col: agg_fn for col in ddf.columns if col != "hex_code"}
-                    )
+                    ddf = geo.aggregate_hexagon_fn(ddf, agg_fn)
+                    # ddf = ddf.groupby("hex_code").agg(
+                    #     {col: agg_fn for col in ddf.columns if col != "hex_code"}
+                    # )
                     tmp = ddf.compute()
             except OSError:
                 try:
@@ -577,9 +578,10 @@ def agg_tif_to_df(
                         ddf = ddf.drop(columns=["latitude", "longitude"])
                         print("Done!")
                         print("Aggregating within cells...")
-                        ddf = ddf.groupby("hex_code").agg(
-                            {col: agg_fn for col in ddf.columns if col != "hex_code"}
-                        )
+                        ddf = geo.aggregate_hexagon_fn(ddf, agg_fn)
+                        # ddf = ddf.groupby("hex_code").agg(
+                        #     {col: agg_fn for col in ddf.columns if col != "hex_code"}
+                        # )
                         tmp = ddf.compute()
                 except RuntimeError:
                     # scheduler for dask failed to start, just use numpy + pandas
@@ -595,9 +597,10 @@ def agg_tif_to_df(
                     tmp.drop(columns=["latitude", "longitude"], inplace=True)
                     print("Done!")
                     print("Aggregating within cells...")
-                    tmp = tmp.groupby(by=["hex_code"]).agg(
-                        {col: agg_fn for col in tmp.columns if col != "hex_code"}
-                    )
+                    tmp = geo.aggregate_hexagon_fn(tmp, agg_fn)
+                    # tmp = tmp.groupby(by=["hex_code"]).agg(
+                        # {col: agg_fn for col in tmp.columns if col != "hex_code"}
+                    # )
 
         else:
             tmp["hex_code"] = tmp[["latitude", "longitude"]].swifter.apply(
@@ -607,9 +610,10 @@ def agg_tif_to_df(
             tmp.drop(columns=["latitude", "longitude"], inplace=True)
             print("Done!")
             print("Aggregating within cells...")
-            tmp = tmp.groupby(by=["hex_code"]).agg(
-                {col: agg_fn for col in tmp.columns if col != "hex_code"}
-            )
+            tmp = geo.aggregate_hexagon_fn(tmp, agg_fn)
+            # tmp = tmp.groupby(by=["hex_code"]).agg(
+                # {col: agg_fn for col in tmp.columns if col != "hex_code"}
+            # )
         print("Joining to already aggregated data...")
         # Aggregate ground truth to hexagonal cells with mean
         # NB automatically excludes missing data for households,
@@ -619,7 +623,9 @@ def agg_tif_to_df(
             if len(override_cols) > 0:
                 print("Overwriting old columns:", override_cols)
             df.drop(columns=override_cols, inplace=True)
-        df = df.join(
+        print(f'df: {df.head()}')
+        print(f'tmp: {tmp.head()}')
+        df = df.merge(
             tmp,
             how="left",
             on="hex_code",
