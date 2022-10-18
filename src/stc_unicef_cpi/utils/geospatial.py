@@ -13,8 +13,10 @@ from shapely.geometry.polygon import Polygon
 from shapely.geometry import Point
 import pycountry
 from pyquadkey2 import quadkey as qk
+import dask.dataframe as dd
 
 import stc_unicef_cpi.utils.clean_text as ct
+import stc_unicef_cpi.utils.general as g
 
 # resolution and area of hexagon in km2
 res_area = {
@@ -97,9 +99,47 @@ def create_geometry(data, lat, long):
 
 
 def get_hex_code(df, lat, long, res):
-    df["hex_code"] = df[[lat, long]].apply(
+    df["hex_code"] = df[[lat, long]].swifter.apply(
         lambda row: h3.geo_to_h3(row[lat], row[long], res), axis=1
     )
+    return df
+
+def get_hex_code_w_dask(data, lat, lon, resolution):
+    # NB ideal to have partitions around 100MB in size
+    # client.restart()
+    ddf = dd.from_pandas(
+        data,
+        npartitions=max(
+        [4, int(data.memory_usage(deep=True).sum() // int(1e8))]
+        ),
+    )  # chunksize = max_records(?)
+    print(f"Using {ddf.npartitions} partitions")
+    ddf["hex_code"] = ddf[[lat, lon]].apply(
+        lambda row: h3.geo_to_h3(
+            row[lat], row[lon], resolution
+        ),
+        axis=1,
+        meta=(None, int),
+    )
+    # ddf = ddf.drop(columns=[lat, lon])
+    # print("Done!")
+    # print("Aggregating within cells...")
+    # ddf = ddf.groupby("hex_code").agg(
+    #     {col: agg_fn for col in ddf.columns if col != "hex_code"}
+    #     )
+    # data = ddf.compute() 
+    return ddf
+
+# def aggregate_hexagon_fn(df, agg_fn):
+#     df = df.groupby(by=["hex_code"]).agg(
+#         {col: agg_fn for col in df.columns if col != "hex_code"}
+#     )
+#     return df
+
+def aggregate_hexagon_fn(df, agg_dic):
+    cols = list(df.columns)
+    agg_dic = g.subset_dic(cols, agg_dic)
+    df = df.groupby(by=["hex_code"]).agg(agg_dic).reset_index()
     return df
 
 

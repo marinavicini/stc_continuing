@@ -1,5 +1,6 @@
 import inspect
 from pathlib import Path
+import pandas as pd
 
 # optimization objective for facebook audience estimates
 opt = "REACH"
@@ -127,6 +128,71 @@ dic_pycountry_to_gaul = {'Cabo Verde':'Cape Verde',
     'Tanzania, United Republic of': 'United Republic of Tanzania',
     'Congo, The Democratic Republic of the':'Democratic Republic of the Congo',
     'Eswatini':'Swaziland'}
+
+
+agg_fn = {
+    # copland
+    'elevation':'mean',
+    'evapotrans':'mean',
+    'built':pd.Series.mode,
+    'cnfd':'mean',
+    'accessibility':'median',
+    'accessibility_walking_only':'median',
+    'ndvi':'mean',
+    'ndwi':'mean',
+    'avg_rad':'mean',
+    'cf_cvg':'mean',
+    'pdsi':'mean',
+    'Optical_Depth_047':'mean',
+    'Optical_Depth_055':'mean',
+    'precipiacc':'sum',
+    'precimean':'mean',
+    'precistd':'mean',
+    'slope':'mean',
+    'population':'sum',
+    'M_0':'sum',
+    'M_1':'sum',
+    'M_5':'sum',
+    'M_10':'sum',
+    'M_15':'sum',
+    'M_30':'sum',
+    'M_20':'sum',
+    'M_25':'sum',
+    'M_35':'sum',
+    'M_40':'sum',
+    'M_45':'sum',
+    'M_50':'sum',
+    'M_55':'sum',
+    'M_60':'sum',
+    'M_70':'sum',
+    'M_75':'sum',
+    'M_65':'sum',
+    'M_80':'sum',
+    'F_0':'sum',
+    'F_1':'sum',
+    'F_5':'sum',
+    'F_10':'sum',
+    'F_15':'sum',
+    'F_20':'sum',
+    'F_25':'sum',
+    'F_30':'sum',
+    'F_35':'sum',
+    'F_40':'sum',
+    'F_45':'sum',
+    'F_60':'sum',
+    'F_50':'sum',
+    'F_55':'sum',
+    'F_65':'sum',
+    'F_70':'sum',
+    'F_75':'sum',
+    'F_80':'sum',
+    '2019gdp':'mean',
+    'africa':'mean',
+    'ec2019':'mean',
+    'GDP_PPP_1990':'mean',
+    'GDP_PPP_2000':'mean',
+    'GDP_PPP_2015':'mean'
+}
 
 
 
