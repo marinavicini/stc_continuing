@@ -198,7 +198,8 @@ def change_name_reproject_tiff(
             raise FileNotFoundError(
                 f"Must have GEE data available in {gee_dir} - currently must manually download there from Google Drive."
             )
-    p_r = Path(read_dir) / "gee" / f"cpi_poptotal_{country.lower()}_500.tif"
+    country_code = ct.get_alpha3_code(country)
+    p_r = Path(read_dir) / "gee" / country_code / f"cpi_poptotal_{country.lower()}_500.tif"
     pg.rxr_reproject_tiff_to_target(tiff, p_r, Path(out_dir) / fname, verbose=True)
 
 
@@ -297,9 +298,11 @@ def preprocessed_speed_test(speed, res, country) -> pd.DataFrame:
     # now use low res to roughly clip
     world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
     ctry = world[world.iso_a3 == ctry_code]
+    print('world')
     bd_series = speed.geometry.str.replace(r"POLYGON\s\(+|\)", "").str.split(r"\s|,\s")
     speed["min_x"] = bd_series.str[0].astype("float")
     speed["max_y"] = bd_series.str[-1].astype("float")
+    print('bd series')
     if ctry.shape[0]>0: 
         minx, miny, maxx, maxy = ctry.bounds.values.T.squeeze()
     else:
@@ -311,24 +314,24 @@ def preprocessed_speed_test(speed, res, country) -> pd.DataFrame:
         speed.min_x.between(minx - 1e-1, maxx + 1e-1)
         & speed.max_y.between(miny - 1e-1, maxy + 1e-1)
     ].copy()
+    print('speed')
     if speed.shape[0] == 0:
-        print(f'No speed data for {country}')
+        logging.info(f'No speed data for {country}')
         return pd.DataFrame(0, columns=['hex_code'])
 
     speed["geometry"] = speed.geometry.swifter.apply(shapely.wkt.loads)
     speed = gpd.GeoDataFrame(speed, crs="epsg:4326")
+    print('gpd')
     # only now look for intersection, as expensive
     try:
         ctry_geom = gpd.GeoDataFrame(ctry_geom, columns=["geometry"], crs="EPSG:4326")
     except ValueError:
         # problem for single geometry
         ctry_geom = gpd.GeoDataFrame([ctry_geom], columns=["geometry"], crs="EPSG:4326")
-    finally:
-        logging.error(f'No speed data for {country}, returning empty dataframe')
-        return pd.DataFrame([0], columns=['hex_code'])
     speed = gpd.sjoin(speed, ctry_geom, how="inner", op="intersects").reset_index(
         drop=True
     )
+    print('intersection')
     tmp = speed.geometry.swifter.apply(
         lambda x: pd.Series(np.array(x.centroid.coords.xy).flatten())
     )
@@ -521,8 +524,11 @@ def append_features_to_hexes(
     econ = pg.agg_tif_to_df(
         ctry,
         econ_files,
+        agg_fn = c.agg_fn,
+        # max_records = int(1e5),
         resolution=res,
         rm_prefix=rf"cpi|_|{country.lower()}|500",
+        replace_old = False,
         verbose=True,
     )
 
@@ -540,16 +546,21 @@ def append_features_to_hexes(
     gee = pg.agg_tif_to_df(
         ctry,
         list(small_gee),
+        agg_fn = c.agg_fn,
+        # max_records = int(1e5),
         resolution=res,
+        replace_old = False,
         rm_prefix=rf"cpi|_|{country.lower()}|500",
         verbose=True,
     )
 
     for large_file in large_gee:
         large_gee_df = pg.rast_to_agg_df(
-            large_file, resolution=res, max_bands=max_bands, verbose=True
+            large_file, 
+            agg_fn = c.agg_fn,
+            resolution=res, max_bands=max_bands, verbose=True
         )
-        gee = gee.join(
+        gee = gee.merge(
             large_gee_df,
             on="hex_code",
             how="outer",
@@ -620,6 +631,9 @@ def append_features_to_hexes(
     hexes = reduce(
         lambda left, right: pd.merge(left, right, on="hex_code", how="left"), dfs
     )
+
+    # Get country code
+    hexes['country_code'] = country_code
 
     # Get autoencoders
     if encoders:
