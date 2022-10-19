@@ -623,8 +623,6 @@ def agg_tif_to_df(
             if len(override_cols) > 0:
                 print("Overwriting old columns:", override_cols)
             df.drop(columns=override_cols, inplace=True)
-        print(f'df: {df.head()}')
-        print(f'tmp: {tmp.head()}')
         df = df.merge(
             tmp,
             how="left",

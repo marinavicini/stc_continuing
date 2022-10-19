@@ -200,7 +200,7 @@ def change_name_reproject_tiff(
             )
     country_code = ct.get_alpha3_code(country)
     p_r = Path(read_dir) / "gee" / country_code / f"cpi_poptotal_{country.lower()}_500.tif"
-    pg.rxr_reproject_tiff_to_target(tiff, p_r, Path(out_dir) / fname, verbose=True)
+    pg.rxr_reproject_tiff_to_target(tiff, p_r, Path(out_dir) / fname, verbose=False)
 
 
 @g.timing
@@ -277,7 +277,7 @@ def preprocessed_tiff_files(
         country_name = ct.format_country_name(country)
         p_r = Path(read_dir) / "gee" / country_code / f"cpi_poptotal_{country_name.lower()}_500.tif"
         pg.rxr_reproject_tiff_to_target(
-            cisi_ctry, p_r, Path(out_dir) / fname, verbose=True
+            cisi_ctry, p_r, Path(out_dir) / fname, verbose=False
         )
 
 @g.timing
@@ -298,11 +298,9 @@ def preprocessed_speed_test(speed, res, country) -> pd.DataFrame:
     # now use low res to roughly clip
     world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
     ctry = world[world.iso_a3 == ctry_code]
-    print('world')
     bd_series = speed.geometry.str.replace(r"POLYGON\s\(+|\)", "").str.split(r"\s|,\s")
     speed["min_x"] = bd_series.str[0].astype("float")
     speed["max_y"] = bd_series.str[-1].astype("float")
-    print('bd series')
     if ctry.shape[0]>0: 
         minx, miny, maxx, maxy = ctry.bounds.values.T.squeeze()
     else:
@@ -314,14 +312,12 @@ def preprocessed_speed_test(speed, res, country) -> pd.DataFrame:
         speed.min_x.between(minx - 1e-1, maxx + 1e-1)
         & speed.max_y.between(miny - 1e-1, maxy + 1e-1)
     ].copy()
-    print('speed')
     if speed.shape[0] == 0:
         logging.info(f'No speed data for {country}')
         return pd.DataFrame(0, columns=['hex_code'])
 
     speed["geometry"] = speed.geometry.swifter.apply(shapely.wkt.loads)
     speed = gpd.GeoDataFrame(speed, crs="epsg:4326")
-    print('gpd')
     # only now look for intersection, as expensive
     try:
         ctry_geom = gpd.GeoDataFrame(ctry_geom, columns=["geometry"], crs="EPSG:4326")
@@ -331,7 +327,6 @@ def preprocessed_speed_test(speed, res, country) -> pd.DataFrame:
     speed = gpd.sjoin(speed, ctry_geom, how="inner", op="intersects").reset_index(
         drop=True
     )
-    print('intersection')
     tmp = speed.geometry.swifter.apply(
         lambda x: pd.Series(np.array(x.centroid.coords.xy).flatten())
     )
@@ -529,7 +524,7 @@ def append_features_to_hexes(
         resolution=res,
         rm_prefix=rf"cpi|_|{country.lower()}|500",
         replace_old = False,
-        verbose=True,
+        verbose=False,
     )
 
     # Google Earth Engine
@@ -550,8 +545,8 @@ def append_features_to_hexes(
         # max_records = int(1e5),
         resolution=res,
         replace_old = False,
-        rm_prefix=rf"cpi|_|{country.lower()}|500",
-        verbose=True,
+        rm_prefix=rf"cpi|_|{country_name.lower()}|500",
+        verbose=False,
     )
 
     for large_file in large_gee:
