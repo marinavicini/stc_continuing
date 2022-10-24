@@ -10,6 +10,7 @@ import numpy.typing as npt
 import rasterio
 import rasterio.mask
 
+import stc_unicef_cpi.utils.geospatial as geo
 
 def netcdf_to_clipped_array(
     file_path: Union[str, PathLike],
@@ -34,19 +35,21 @@ def netcdf_to_clipped_array(
     :return: Either None if save_dir is not None, or clipped array
     :rtype: Union[None, npt.NDArray]
     """
-
+    # ctry_code = ct.get_alpha3_code(ctry_name)
     fname = Path(file_path).name
     # world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
     # use high res version to avoid clipping
-    shpfilename = shpreader.natural_earth(
-        resolution="10m", category="cultural", name="admin_0_countries"
-    )
-    reader = shpreader.Reader(shpfilename)
-    world = reader.records()
+    # shpfilename = shpreader.natural_earth(
+    #     resolution="10m", category="cultural", name="admin_0_countries"
+    # )
+    # reader = shpreader.Reader(shpfilename)
+    # world = reader.records()
     with rasterio.open(f"netcdf:{file_path}", "r", masked=True) as netf:
-        ctry_shp = next(
-            filter(lambda x: x.attributes["NAME"] == ctry_name, world)
-        ).geometry
+        ctry_shp = geo.get_shape_for_ctry(ctry_name)
+
+        # ctry_shp = next(
+        #     filter(lambda x: x.attributes["ADM0_ISO"] == ctry_code, world)
+        # ).geometry
         if netf.crs is not None and netf.crs != "EPSG:4326":
             # NB assumes that no CRS corresponds to EPSG:4326 (as standard)
             ctry_shp = gpd.GeoSeries(ctry_shp)

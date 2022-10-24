@@ -5,6 +5,7 @@ import glob
 import pandas as pd
 import requests  # type: ignore
 from bs4 import BeautifulSoup
+import pycountry
 
 from stc_unicef_cpi.utils.general import (
     create_folder,
@@ -27,7 +28,9 @@ def get_opencell_url(country, token):
     soup = BeautifulSoup(requests.get(url).text, "lxml")
     table = soup.find("table", {"id": "regions"})
     t_headers = [th.text.replace("\n", " ").strip() for th in table.find_all("th")]
-    countrycol = t_headers[0]
+    # the second column is the country code
+    countrycol = t_headers[1]
+    country_code = pycountry.countries.get(name = country).alpha_2
     table_data = []
     for tr in table.tbody.find_all("tr"):
         t_row = {}
@@ -38,17 +41,17 @@ def get_opencell_url(country, token):
                 t_row[th] = td.text.replace("\n", "").strip()
         table_data.append(t_row)
     df = pd.DataFrame(table_data)
-    df[countrycol] = df[countrycol].str.lower()
-    if country not in df[countrycol].values:
+    df[countrycol] = df[countrycol] # .str.lower()
+    if country_code not in df[countrycol].values:
         print("Invalid country code to get OpenCell Data!")
     else:
-        links = df[df[countrycol] == country][t_headers[-1]].values[0]
+        links = df[df[countrycol] == country_code][t_headers[-1]].values[0]
     return links
 
 
 def get_cell_data(country, save_path):
     """get_cell_data _summary_
-    :param country: _description_
+    :param country: _description_ 
     :type country: _type_
     :param token: _description_
     :type token: _type_
@@ -56,7 +59,7 @@ def get_cell_data(country, save_path):
     :rtype: _type_
     """
     create_folder(save_path)
-    token = get_open_cell_credentials("../../../conf/credentials.yaml")
+    token = get_open_cell_credentials("../../../conf/credentials.yml")
     urls = get_opencell_url(country, token)
     country = country.lower().replace(" ", "_")
     for url in urls:

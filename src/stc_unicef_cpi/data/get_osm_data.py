@@ -110,6 +110,7 @@ def assign_cluster(
         results = get_hex_code(results, lat, long, res)
     except KeyError:
         print(results.head())
+        print('Server overload, try again in a while')
         raise ValueError("Problem w OSM data format")
     temp = results.groupby([hex_code_col])["length"].sum().reset_index()
     temp["length_km"] = temp["length"] / 1000
@@ -133,6 +134,13 @@ def get_road_density(country, res):
     :rtype: dataframe
     """
     hexes = get_hexes_for_ctry(country, res=2)
+    try:
+        assert len(hexes)>0
+    except:
+        print('Country small in size, try new approach')
+        hexes = get_hexes_for_ctry(country, res=7)
+        hexes = set([h3.h3_to_parent(x, 2) for x in hexes])
+    
     coords = add_neighboring_hexagons(hexes)
     overpass_results = assign_road_length_to_hex(coords)
     road_density = assign_cluster(overpass_results, country, res)

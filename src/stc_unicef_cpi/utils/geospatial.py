@@ -10,6 +10,13 @@ import shapely.wkt
 from pyproj import Geod
 from shapely import geometry, wkt
 from shapely.geometry.polygon import Polygon
+from shapely.geometry import Point
+import pycountry
+from pyquadkey2 import quadkey as qk
+import dask.dataframe as dd
+
+import stc_unicef_cpi.utils.clean_text as ct
+import stc_unicef_cpi.utils.general as g
 
 # resolution and area of hexagon in km2
 res_area = {
@@ -92,9 +99,47 @@ def create_geometry(data, lat, long):
 
 
 def get_hex_code(df, lat, long, res):
-    df["hex_code"] = df[[lat, long]].apply(
+    df["hex_code"] = df[[lat, long]].swifter.apply(
         lambda row: h3.geo_to_h3(row[lat], row[long], res), axis=1
     )
+    return df
+
+def get_hex_code_w_dask(data, lat, lon, resolution):
+    # NB ideal to have partitions around 100MB in size
+    # client.restart()
+    ddf = dd.from_pandas(
+        data,
+        npartitions=max(
+        [4, int(data.memory_usage(deep=True).sum() // int(1e8))]
+        ),
+    )  # chunksize = max_records(?)
+    print(f"Using {ddf.npartitions} partitions")
+    ddf["hex_code"] = ddf[[lat, lon]].apply(
+        lambda row: h3.geo_to_h3(
+            row[lat], row[lon], resolution
+        ),
+        axis=1,
+        meta=(None, int),
+    )
+    # ddf = ddf.drop(columns=[lat, lon])
+    # print("Done!")
+    # print("Aggregating within cells...")
+    # ddf = ddf.groupby("hex_code").agg(
+    #     {col: agg_fn for col in ddf.columns if col != "hex_code"}
+    #     )
+    # data = ddf.compute() 
+    return ddf
+
+# def aggregate_hexagon_fn(df, agg_fn):
+#     df = df.groupby(by=["hex_code"]).agg(
+#         {col: agg_fn for col in df.columns if col != "hex_code"}
+#     )
+#     return df
+
+def aggregate_hexagon_fn(df, agg_dic):
+    cols = list(df.columns)
+    agg_dic = g.subset_dic(cols, agg_dic)
+    df = df.groupby(by=["hex_code"]).agg(agg_dic).reset_index()
     return df
 
 
@@ -111,12 +156,20 @@ def aggregate_hexagon(df, col_to_agg, name_agg, type):
 def get_shape_for_ctry(ctry_name):
     # world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
     # ctry_shp = world[world.name == ctry_name]
+    ctry_code = ct.get_alpha3_code(ctry_name)
     shpfilename = shpreader.natural_earth(
         resolution="10m", category="cultural", name="admin_0_countries"
     )
     reader = shpreader.Reader(shpfilename)
     world = reader.records()
-    ctry_shp = next(filter(lambda x: x.attributes["NAME"] == ctry_name, world)).geometry
+    # print(f'country name: {ctry_name}, country code: {ctry_code}')
+    try:
+        # ctry_shp = next(filter(lambda x: x.attributes["NAME"] == ctry_name, world)).geometry
+        ctry_shp = next(filter(lambda x: x.attributes["ADM0_ISO"] == ctry_code, world)).geometry
+    except StopIteration:    
+        world = reader.records()
+        ctry_shp = next(filter(lambda x: x.attributes["ADM0_A3"] == ctry_code, world)).geometry
+
     return ctry_shp
 
 
@@ -127,12 +180,8 @@ def get_hexes_for_ctry(ctry_name="Nigeria", res=7):
     :param level: _description_, defaults to 7
     :type level: int, optional
     """
-    shpfilename = shpreader.natural_earth(
-        resolution="10m", category="cultural", name="admin_0_countries"
-    )
-    reader = shpreader.Reader(shpfilename)
-    world = reader.records()
-    ctry_shp = next(filter(lambda x: x.attributes["NAME"] == ctry_name, world)).geometry
+    ctry_shp = get_shape_for_ctry(ctry_name)
+    
     try:
         # handle MultiPolygon
         ctry_polys = list(ctry_shp)
@@ -227,3 +276,16 @@ def hexes_poly(poly, res):
     df.rename(columns={0: "hex_code"}, inplace=True)
     df["geometry"] = poly
     return df
+
+def get_quadkey_polygon(qkey):
+    '''Get polygon associated with quadkey'''
+    # save string as quadkey
+    qkey = qk.QuadKey(str(qkey))
+    # get coordinates
+    n, w = qkey.to_geo(0)
+    s, e = qkey.to_geo(3)
+
+    poly_quadkey = Polygon(
+        [Point([w, n]), Point([e, n]), Point([e, s]), Point([w, s])]
+    )
+    return poly_quadkey
