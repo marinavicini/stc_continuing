@@ -121,6 +121,23 @@ countries_ssf = ['Angola',
             'Uganda',
             'Zambia', 'Zimbabwe']
 
+
+countries_code_ssf = ['AGO',
+                    'BEN', 'BWA', 'BFA', 'BDI',
+                    'CAF', 'CIV', 'CMR', 'COD', 'COG', 'COM', 'CPV', 
+                    'ERI', 'ETH', 
+                    'GAB', 'GHA', 'GIN', 'GMB', 'GNB', 'GNQ',
+                    'KEN',
+                    'LBR', 'LSO', 
+                    'MDG', 'MLI', 'MOZ', 'MRT', 'MUS', 'MWI',
+                    'NAM', 'NER', 'NGA', 
+                    'RWA',
+                    'SDN', 'SEN', 'SLE', 'SOM', 'SSD', 'STP', 'SWZ', 'SYC', 
+                    'TCD', 'TGO', 'TZA', 
+                    'UGA', 
+                    'ZAF', 'ZMB', 'ZWE']
+
+
 # countries name that not match between pycountry library and gaul name
 # key -> pycountry version
 # value -> gaul version
