@@ -563,8 +563,6 @@ def append_features_to_hexes(
 
     # Join GEE with Econ
     logger.info("Merging aggregated features from tiff files to hexagons...")
-    # econ.to_csv(Path(save_dir) / f"tmp_{country.lower()}_econ.csv")
-    # gee.to_csv(Path(save_dir) / f"tmp_{country.lower()}_gee.csv")
 
     images = gee.merge(econ, on=["hex_code"], how="outer")
     del econ

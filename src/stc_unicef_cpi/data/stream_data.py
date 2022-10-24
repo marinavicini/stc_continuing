@@ -270,7 +270,8 @@ class OpenCellStreamer(StreamerObject):
         self.implement()
 
     def implement(self):
-        file_name = f"{self.country.lower()}_*.csv.gz.tmp"
+        country = self.country.lower().replace(" ", "_")
+        file_name = f"{country.lower()}_*.csv.gz.tmp"
         save_path = f'{self.read_path}/cell_tower'
         if self.force:
             self.logging.info(
