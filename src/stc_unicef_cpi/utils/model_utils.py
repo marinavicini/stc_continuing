@@ -210,3 +210,45 @@ def select_cv_type(cv_type='normal', nfolds=5, XY=None, X_train=None):
     return kfold, spatial_groups
    
 
+def call_experiment(client, cv_type, country_code, target):
+    '''check if experiment exists otherwise create it'''
+    try:
+        # Create an experiment name, which must be unique and case sensitive
+        experiment_id = client.create_experiment(
+            f"{cv_type}-{country_code}-{target}",
+            tags={"cv_type": cv_type, "country_code": country_code, "target":target},
+        )
+        # experiment = client.get_experiment(experiment_id)
+        print('new exp')
+    except:
+        assert (
+            f"{cv_type}-{country_code}-{target}"
+            in [exp.name for exp in client.list_experiments()]
+        )
+        experiment_id = f"{cv_type}-{country_code}-{target}"
+        experiment_id = [
+            exp.experiment_id
+            for exp in client.list_experiments()
+            if exp.name
+            == f"{cv_type}-{country_code}-{target}"
+        ][0]
+        print('experiment already existing')
+    print(experiment_id)
+    return experiment_id
+
+
+def mlflow_track_automl(automl):
+    mlflow.log_param(key="best_model", value=automl.best_estimator)
+    mlflow.log_param(key="best_config", value=automl.best_config)
+    mlflow.log_params(automl.best_config) #### WHAT TO USE???
+
+    # metrics
+    mlflow.log_metric(key="pred_time", value=automl.best_result['pred_time']) 
+    mlflow.log_metric(key="validation_loss", value=automl.best_result['val_loss']) 
+    mlflow.log_metric(key="wall_clock_time", value=automl.best_result['wall_clock_time']) 
+    mlflow.log_metric(key="training_iteration", value=automl.best_result['training_iteration']) 
+    
+    # model
+    mlflow.sklearn.log_model(automl.model.model, "model") ###
+
+

@@ -65,7 +65,9 @@ eval_split_type = 'normal'
 
 ################################################
 
-DATA_DIRECTORY = '/mnt/c/Users/vicin/Desktop/DSSG/Project/stc_continuing'
+# DATA_DIRECTORY = '/mnt/c/Users/vicin/Desktop/DSSG/Project/stc_continuing'
+# mlflow_path = 'file:///mnt/c/Users/vicin/Desktop/DSSG/Project/models/mlruns'
+mlflow_path = '/mnt/c/Users/vicin/Desktop/DSSG/Project/models/mlruns'
 
 read_path = '/mnt/c/Users/vicin/Desktop/DSSG/Project/stc_continuing/data'
 
@@ -140,12 +142,12 @@ r2 = 0
 
 
 # set up mlflow
-SAVE_DIR = Path(DATA_DIRECTORY).parent / "models"
-SAVE_DIR.mkdir(exist_ok=True)
-MLFLOW_DIR = SAVE_DIR / "mlruns"
-MLFLOW_DIR.mkdir(exist_ok=True)
+# SAVE_DIR = Path(DATA_DIRECTORY).parent / "models"
+# SAVE_DIR.mkdir(exist_ok=True)
+# MLFLOW_DIR = SAVE_DIR # / "mlruns"
+# MLFLOW_DIR.mkdir(exist_ok=True)
 
-mlflow.set_tracking_uri(MLFLOW_DIR)
+mlflow.set_tracking_uri(f'file://{mlflow_path}') #MLFLOW_DIR)
 client = mlflow.tracking.MlflowClient()
 
 experiment_id = mu.call_experiment(client, 'spatialcv', country_code, 'deprived')
@@ -174,8 +176,19 @@ for mod_type in ['xgboost', 'lgbm', 'rf', 'extra_tree']:
         best_model = automl.model.model 
         r2 = r2_new
 
-with mlflow.start_run(experiment_id=experiment_id) as run: ########
+    with mlflow.start_run(experiment_id=experiment_id) as run: ########
         # Log with Mlflow
+        # mu.mlflow_track_tags(country_code = country_code, 
+        #                     dim = dim, 
+        #                     cv_type = cv_type, 
+        #                     eval_split_type = eval_split_type,
+        #                     impute = impute, 
+        #                     standardise = standardise, 
+        #                     target_transform = target_transform, 
+        #                     copy_to_nbrs = copy_to_nbrs, 
+        #                     nfolds = nfolds, 
+        #                     test_size = test_size, 
+        #                     time_budget = time_budget)
         mlflow.set_tags({
             "country_code" : country_code,
             "target" : dim,
@@ -194,9 +207,9 @@ with mlflow.start_run(experiment_id=experiment_id) as run: ########
             }
         )
         # parameters
-        mlflow.log_param(key="best_model", value=automl.best_estimator)
-        mlflow.log_param(key="best_config", value=automl.best_config)
-        mlflow.log_params(automl.best_config) #### WHAT TO USE???
+        # mlflow.log_param(key="best_model", value=automl.best_estimator)
+        # mlflow.log_param(key="best_config", value=automl.best_config)
+        # mlflow.log_params(automl.best_config) #### WHAT TO USE???
 
 
         # metrics
@@ -205,14 +218,15 @@ with mlflow.start_run(experiment_id=experiment_id) as run: ########
         mlflow.log_metric(key="mse", value=mse_val) 
         mae_val = sklearn_metric_loss_score("mae", Y_pred, Y_test) 
         mlflow.log_metric(key="mae", value=mae_val) 
-        mlflow.log_metric(key="pred_time", value=automl.best_result['pred_time']) 
-        mlflow.log_metric(key="validation_loss", value=automl.best_result['val_loss']) 
-        mlflow.log_metric(key="wall_clock_time", value=automl.best_result['wall_clock_time']) 
-        mlflow.log_metric(key="training_iteration", value=automl.best_result['training_iteration']) 
+        # mlflow.log_metric(key="pred_time", value=automl.best_result['pred_time']) 
+        # mlflow.log_metric(key="validation_loss", value=automl.best_result['val_loss']) 
+        # mlflow.log_metric(key="wall_clock_time", value=automl.best_result['wall_clock_time']) 
+        # mlflow.log_metric(key="training_iteration", value=automl.best_result['training_iteration']) 
 
         # model
-        mlflow.sklearn.log_model(automl.model.model, "model") ###
+        # mlflow.sklearn.log_model(automl.model.model, "model") ###
 
+        mu.mlflow_track_automl(automl)
             
 
 pipeline_best = Pipeline([("impute", col_tf), ("model", best_model)])
