@@ -41,6 +41,7 @@ from stc_unicef_cpi.utils.mlflow_utils import fetch_logged_data
 from stc_unicef_cpi.utils.scoring import mae
 
 import stc_unicef_cpi.utils.constants as c
+import stc_unicef_cpi.utils.clean_text as ct
 import stc_unicef_cpi.utils.model_utils as mu
 
 
@@ -213,11 +214,13 @@ for mod_type in ['xgboost', 'lgbm', 'rf', 'extra_tree']:
 
 
         # metrics
-        mlflow.log_metric(key="r2_score", value=r2_new)
-        mse_val = sklearn_metric_loss_score("mse", Y_pred, Y_test) 
-        mlflow.log_metric(key="mse", value=mse_val) 
-        mae_val = sklearn_metric_loss_score("mae", Y_pred, Y_test) 
-        mlflow.log_metric(key="mae", value=mae_val) 
+        mu.mlflow_track_metrics(Y_pred, Y_test)
+
+        # mlflow.log_metric(key="r2_score", value=r2_new)
+        # mse_val = sklearn_metric_loss_score("mse", Y_pred, Y_test) 
+        # mlflow.log_metric(key="mse", value=mse_val) 
+        # mae_val = sklearn_metric_loss_score("mae", Y_pred, Y_test) 
+        # mlflow.log_metric(key="mae", value=mae_val) 
         # mlflow.log_metric(key="pred_time", value=automl.best_result['pred_time']) 
         # mlflow.log_metric(key="validation_loss", value=automl.best_result['val_loss']) 
         # mlflow.log_metric(key="wall_clock_time", value=automl.best_result['wall_clock_time']) 
@@ -242,9 +245,15 @@ for cc in dhs_countries_code:
 
 
 for dim in outputs:
-    if dim!='deprived_sev_mean_neigh':
+    if dim=='deprived_sev_mean_neigh':
         Y_train = Y_all_train[dim]
         Y_test = Y_all_test[dim]
+        continue
+
+    print(dim)
+    dim_clean = ct.clean_name_dim(dim)
+
+    experiment_id = mu.call_experiment(client, 'spatialcv', country_code, dim_clean)
 
     automl_settings['estimator_list'] = ["xgboost", "lgbm", "rf", "extra_tree"]
     automl_settings['time_budget'] = time_budget
@@ -256,6 +265,36 @@ for dim in outputs:
     r2 = r2_score(Y_test, Y_pred)
     save[dim] = [r2]
     save[f'{dim}_model'] = [automl.best_estimator]
+    with mlflow.start_run(experiment_id=experiment_id) as run: 
+        # Log with Mlflow
+        mlflow.set_tags({
+            "country_code" : country_code,
+            "target" : dim,
+            "cv_type": cv_type,
+            "eval_split_type": eval_split_type,
+            "imputation": impute,
+            "standardisation": standardise,
+            "target_transform": target_transform,
+            # "interpretable": args.interpretable,
+            # "universal": args.universal_data_only,
+            "copy_to_nbrs": copy_to_nbrs,
+            "nfolds" : nfolds,
+            "test_size" : test_size,
+            "time_budget" : time_budget
+            # "model_type": automl.best_estimator 
+            }
+        )
+
+        # metrics
+        # mlflow.log_metric(key="r2_score", value=r2)
+        # mse_val = sklearn_metric_loss_score("mse", Y_pred, Y_test) 
+        # mlflow.log_metric(key="mse", value=mse_val) 
+        # mae_val = sklearn_metric_loss_score("mae", Y_pred, Y_test) 
+        # mlflow.log_metric(key="mae", value=mae_val) 
+        
+        mu.mlflow_track_metrics(Y_pred, Y_test)
+        mu.mlflow_track_automl(automl)
+
 
 
 print(save)

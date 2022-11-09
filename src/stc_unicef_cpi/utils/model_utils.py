@@ -191,13 +191,13 @@ def select_cv_type(cv_type='normal', nfolds=5, XY=None, X_train=None):
     spatial_groups=None
 
     if cv_type == "normal":
-        kfold = KFold(n_splits=nfolds, shuffle=True)
+        kfold = KFold(n_splits=nfolds, shuffle=True, random_state=42)
     elif cv_type == "stratified":
-        kfold = StratifiedIntervalKFold(n_splits=nfolds, shuffle=True, n_cuts=5)
+        kfold = StratifiedIntervalKFold(n_splits=nfolds, shuffle=True, n_cuts=5, random_state=42)
     elif cv_type == "spatial":
         # print(X.iloc[:,-1].head())
         kfold = GroupKFold(n_splits= nfolds)
-        spatial_groups = HexSpatialKFold(n_splits=nfolds).get_spatial_groups(
+        spatial_groups = HexSpatialKFold(n_splits=nfolds, random_state=42).get_spatial_groups(
             XY["hex_code"].loc[X_train.index]
         )
         try:
@@ -252,3 +252,30 @@ def mlflow_track_automl(automl):
     mlflow.sklearn.log_model(automl.model.model, "model") ###
 
 
+def mlflow_track_tags(country_code, dim, cv_type, eval_split_type, impute, standardise, target_transform, copy_to_nbrs, nfolds, test_size, time_budget):
+    mlflow.set_tags({
+            "country_code" : country_code,
+            "target" : dim,
+            "cv_type": cv_type,
+            "eval_split_type": eval_split_type,
+            "imputation": impute,
+            "standardisation": standardise,
+            "target_transform": target_transform,
+            # "interpretable": args.interpretable,
+            # "universal": args.universal_data_only,
+            "copy_to_nbrs": copy_to_nbrs,
+            "nfolds" : nfolds,
+            "test_size" : test_size,
+            "time_budget" : time_budget
+            # "model_type": automl.best_estimator #############
+            }
+        )
+
+def mlflow_track_metrics(Y_pred, Y_test):
+    
+    r2 = r2_score(Y_test, Y_pred)
+    mlflow.log_metric(key="r2_score", value=r2)
+    mse_val = sklearn_metric_loss_score("mse", Y_pred, Y_test) 
+    mlflow.log_metric(key="mse", value=mse_val) 
+    mae_val = sklearn_metric_loss_score("mae", Y_pred, Y_test) 
+    mlflow.log_metric(key="mae", value=mae_val) 
