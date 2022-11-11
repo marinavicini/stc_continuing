@@ -80,3 +80,22 @@ def get_commuting_continent(iso):
         return commuting_continent_names[continent_name]
     else:
         return continent_name
+
+
+
+def clean_name_dim(dim):
+    dic = {'deprived_sev_mean_neigh':'deprived', 
+        '2_or_more_prev_neigh':'deprived2', 
+        '3_or_more_prev_neigh':'deprived3', 
+        '4_or_more_prev_neigh':'deprived4',
+        'housing_prev_neigh':'housing', 
+        'water_prev_neigh':'water', 
+        'sanitation_prev_neigh':'sanitation', 
+        'nutrition_prev_neigh':'nutrition', 
+        'health_prev_neigh':'health',
+        'education_prev_neigh': 'education',
+        'sumpoor_prev_neigh':'sumpoor'}
+     
+    assert dim in dic.keys()
+    
+    return dic[dim]
