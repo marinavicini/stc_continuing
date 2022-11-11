@@ -8,6 +8,7 @@ import joblib
 import matplotlib.pyplot as plt
 import mlflow
 import pandas as pd
+import numpy as np
 import pycountry
 import seaborn as sns
 import swifter
@@ -50,6 +51,9 @@ outputs = ['deprived_sev_mean_neigh', '2_or_more_prev_neigh', '3_or_more_prev_ne
         'sumpoor_prev_neigh']
     #    'nutrition_prev_neigh', 'health_prev_neigh',
     #    'education_prev_neigh'
+
+np.random.seed(seed=42)
+
 
 ################################################
 
@@ -230,7 +234,7 @@ for mod_type in ['xgboost', 'lgbm', 'rf', 'extra_tree']:
         # mlflow.sklearn.log_model(automl.model.model, "model") ###
 
         mu.mlflow_track_automl(automl)
-            
+
 
 pipeline_best = Pipeline([("impute", col_tf), ("model", best_model)])
 pipeline_best.fit(X, Y[dim])
