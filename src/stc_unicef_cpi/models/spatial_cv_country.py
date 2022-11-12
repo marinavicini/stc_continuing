@@ -106,60 +106,100 @@ Y_all_test.reset_index(drop=True, inplace=True)
 
 # Y_all_train, Y_all_test = mu.select_target_transform(Y_all_train, Y_all_test, target_transform='none')
 
-# DEPRIVED SEV
-dim = 'deprived_sev_mean_neigh'
-Y_train = Y_all_train[dim]
-Y_test = Y_all_test[dim]
-
-model = AutoML()
-automl_settings = {
-    # CHANGE BUDGET TO 300 TO 30
-            "time_budget": time_budget,  # total running time in seconds for each target
-            "metric": "mse",  # primary metrics for regression can be chosen from: ['mae','mse','r2']
-            "task": "regression",  # task type
-            # "estimator_list": [
-            #     "xgboost",
-            #     "lgbm",
-            #     # "catboost", # for some reason in flaml code, failing for spatial CV
-            #     "rf",
-            #     "extra_tree",
-            # ],
-            # "n_jobs": args.ncores, WHAT IS IT
-            "log_file_name": "automl.log",  # flaml log file
-            "seed": 42,  # random seed
-            "eval_method": "cv",
-            "split_type": kfold,
-            "verbose":1,
-            "groups": spatial_groups if cv_type == "spatial" else None,
-        }
-pipeline_settings = {
-            f"model__{key}": value for key, value in automl_settings.items()
-        }
-
-num_imputer = mu.select_impute(impute=impute)
-col_tf = mu.col_transform(standardise=standardise, impute=impute)
-
-pipeline = Pipeline([("impute", col_tf), ("model", model)])  
 
 save = {}
 
-r2 = 0
+for dim in outputs:
+    Y_train = Y_all_train[dim]
+    Y_test = Y_all_test[dim]
+
+    mlflow.set_tracking_uri(f'file://{mlflow_path}') #MLFLOW_DIR)
+    client = mlflow.tracking.MlflowClient()
+
+    experiment_id = mu.call_experiment(client, 'spatialcv', country_code, dim)
+    # print(experiment_id)
 
 
-# set up mlflow
-# SAVE_DIR = Path(DATA_DIRECTORY).parent / "models"
-# SAVE_DIR.mkdir(exist_ok=True)
-# MLFLOW_DIR = SAVE_DIR # / "mlruns"
-# MLFLOW_DIR.mkdir(exist_ok=True)
+    for mod_type in ['lgbm']:
+        
+        num_imputer = mu.select_impute(impute=impute)
+        col_tf = mu.col_transform(standardise=standardise, impute=impute)
 
-mlflow.set_tracking_uri(f'file://{mlflow_path}') #MLFLOW_DIR)
-client = mlflow.tracking.MlflowClient()
+        # model
 
-experiment_id = mu.call_experiment(client, 'spatialcv', country_code, 'deprived')
-print(experiment_id)
+        model = AutoML()
+        automl_settings = {
+            # CHANGE BUDGET TO 300 TO 30
+                    "time_budget": time_budget,  # total running time in seconds for each target
+                    "metric": "mse",  # primary metrics for regression can be chosen from: ['mae','mse','r2']
+                    "task": "regression",  # task type
+                    "estimator_list" : [mod_type],
+                    # "n_jobs": args.ncores, WHAT IS IT
+                    "log_file_name": "automl.log",  # flaml log file
+                    "seed": 42,  # random seed
+                    "eval_method": "cv",
+                    "split_type": kfold,
+                    "verbose":1,
+                    "groups": spatial_groups if cv_type == "spatial" else None,
+                }
+        pipeline_settings = {
+                    f"model__{key}": value for key, value in automl_settings.items()
+                }
+
+        pipeline = Pipeline([("impute", col_tf), ("model", model)])  
+
+        pipeline.fit(X_train, Y_train, **pipeline_settings)
+        automl = pipeline.steps[1][1]
 
 
-for mod_type in ['xgboost', 'lgbm', 'rf', 'extra_tree']:
+        #### scores and save
+
+        Y_pred = pipeline.predict(X_test)
+        r2 = r2_score(Y_test, Y_pred)
+
+        save[f'{dim}_{mod_type}'] = [r2]
+        
+        with mlflow.start_run(experiment_id=experiment_id) as run: ########
+            mlflow.set_tags({
+                "country_code" : country_code,
+                "target" : dim,
+                "cv_type": cv_type,
+                "eval_split_type": eval_split_type,
+                "imputation": impute,
+                "standardisation": standardise,
+                "target_transform": target_transform,
+                # "interpretable": args.interpretable,
+                # "universal": args.universal_data_only,
+                "copy_to_nbrs": copy_to_nbrs,
+                "nfolds" : nfolds,
+                "test_size" : test_size,
+                "time_budget" : time_budget
+                # "model_type": automl.best_estimator #############
+                }
+            )
+        
+            # metrics
+            mu.mlflow_track_metrics(Y_pred, Y_test)
+            mu.mlflow_track_automl(automl)
+            mu.mlflow_plot(country_code, dim, Y_pred, Y_test) ##############################
+
+        if (mod_type == 'lgbm') and (dim == 'deprived_sev_mean_neigh'):
+            for cc in dhs_countries_code:
+                if cc != country_code:
+                    df_cc = mu.get_data_country(hexes_dhs, cc)
+                    y_cc_pred = pipeline.predict(df_cc[c.features]) 
+                    r2_cc = r2_score(df_cc[dim], y_cc_pred)
+                    save[cc] = [r2_cc]
+        
+
+print(save)
+
+quit()
+
+
+        
+
+for mod_type in ['lgbm']: #['xgboost', 'lgbm', 'rf', 'extra_tree']:
 
     # automl = AutoML()
     pipeline_settings['model__estimator_list'] = [mod_type]
@@ -211,49 +251,32 @@ for mod_type in ['xgboost', 'lgbm', 'rf', 'extra_tree']:
             # "model_type": automl.best_estimator #############
             }
         )
-        # parameters
-        # mlflow.log_param(key="best_model", value=automl.best_estimator)
-        # mlflow.log_param(key="best_config", value=automl.best_config)
-        # mlflow.log_params(automl.best_config) #### WHAT TO USE???
-
-
+        
         # metrics
         mu.mlflow_track_metrics(Y_pred, Y_test)
-
-        # mlflow.log_metric(key="r2_score", value=r2_new)
-        # mse_val = sklearn_metric_loss_score("mse", Y_pred, Y_test) 
-        # mlflow.log_metric(key="mse", value=mse_val) 
-        # mae_val = sklearn_metric_loss_score("mae", Y_pred, Y_test) 
-        # mlflow.log_metric(key="mae", value=mae_val) 
-        # mlflow.log_metric(key="pred_time", value=automl.best_result['pred_time']) 
-        # mlflow.log_metric(key="validation_loss", value=automl.best_result['val_loss']) 
-        # mlflow.log_metric(key="wall_clock_time", value=automl.best_result['wall_clock_time']) 
-        # mlflow.log_metric(key="training_iteration", value=automl.best_result['training_iteration']) 
-
-        # model
-        # mlflow.sklearn.log_model(automl.model.model, "model") ###
-
         mu.mlflow_track_automl(automl)
+        mu.mlflow_plot(country_code, dim, Y_pred, Y_test) ##############################
+
 
 
 pipeline_best = Pipeline([("impute", col_tf), ("model", best_model)])
 pipeline_best.fit(X, Y[dim])
 
-for cc in dhs_countries_code:
-    if cc != country_code:
-        df_cc = mu.get_data_country(hexes_dhs, cc)
-        y_cc_pred = pipeline_best.predict(df_cc[c.features]) 
-        r2_cc = r2_score(df_cc[dim], y_cc_pred)
-        save[cc] = [r2_cc]
+# for cc in dhs_countries_code:
+#     if cc != country_code:
+#         df_cc = mu.get_data_country(hexes_dhs, cc)
+#         y_cc_pred = pipeline_best.predict(df_cc[c.features]) 
+#         r2_cc = r2_score(df_cc[dim], y_cc_pred)
+#         save[cc] = [r2_cc]
 
 
 
 for dim in outputs:
     if dim=='deprived_sev_mean_neigh':
-        Y_train = Y_all_train[dim]
-        Y_test = Y_all_test[dim]
         continue
 
+    Y_train = Y_all_train[dim]
+    Y_test = Y_all_test[dim]
     print(dim)
     dim_clean = ct.clean_name_dim(dim)
 
@@ -298,6 +321,7 @@ for dim in outputs:
         
         mu.mlflow_track_metrics(Y_pred, Y_test)
         mu.mlflow_track_automl(automl)
+        mu.mlflow_plot(country_code, dim, Y_pred, Y_test) ##############################
 
 
 

@@ -41,6 +41,8 @@ from stc_unicef_cpi.utils.mlflow_utils import fetch_logged_data
 from stc_unicef_cpi.utils.scoring import mae
 
 import stc_unicef_cpi.utils.constants as c
+import stc_unicef_cpi.utils.clean_text as ct
+
 
 
 def get_data_country(data, country_code, col = 'deprived_sev_count_neigh'):
@@ -212,14 +214,15 @@ def select_cv_type(cv_type='normal', nfolds=5, XY=None, X_train=None):
 
 def call_experiment(client, cv_type, country_code, target):
     '''check if experiment exists otherwise create it'''
+    target_name = ct.clean_name_dim(target)
+
     try:
         # Create an experiment name, which must be unique and case sensitive
         experiment_id = client.create_experiment(
             f"{cv_type}-{country_code}-{target}",
-            tags={"cv_type": cv_type, "country_code": country_code, "target":target},
+            tags={"cv_type": cv_type, "country_code": country_code, "target":target_name},
         )
         # experiment = client.get_experiment(experiment_id)
-        print('new exp')
     except:
         assert (
             f"{cv_type}-{country_code}-{target}"
@@ -232,8 +235,6 @@ def call_experiment(client, cv_type, country_code, target):
             if exp.name
             == f"{cv_type}-{country_code}-{target}"
         ][0]
-        print('experiment already existing')
-    print(experiment_id)
     return experiment_id
 
 
@@ -279,3 +280,15 @@ def mlflow_track_metrics(Y_pred, Y_test):
     mlflow.log_metric(key="mse", value=mse_val) 
     mae_val = sklearn_metric_loss_score("mae", Y_pred, Y_test) 
     mlflow.log_metric(key="mae", value=mae_val) 
+
+
+
+def mlflow_plot(country_code, dim, Y_pred, Y_test):
+    fig, ax = plt.subplots()
+    ax.plot(Y_pred, Y_test, '.')
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.xlim([0, 1])
+    plt.ylim([0, 1])
+
+    mlflow.log_figure(fig, f'plot_{country_code}_{dim}.png')
