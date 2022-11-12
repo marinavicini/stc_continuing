@@ -285,10 +285,86 @@ def mlflow_track_metrics(Y_pred, Y_test):
 
 def mlflow_plot(country_code, dim, Y_pred, Y_test):
     fig, ax = plt.subplots()
+
+    dim = ct.clean_name_dim(dim)
+    # all dim except depth are between 0 and 1
+    if dim == 'sumpoor':
+        mi, ma = 0, 3.5
+    else:
+        mi, ma = 0, 1
+
     ax.plot(Y_pred, Y_test, '.')
     plt.xlabel('Predicted')
     plt.ylabel('True')
-    plt.xlim([0, 1])
-    plt.ylim([0, 1])
+    plt.xlim([mi, ma])
+    plt.ylim([mi, ma])
 
     mlflow.log_figure(fig, f'plot_{country_code}_{dim}.png')
+
+
+
+def mlflow_track_feature_imp(pipeline, X, Y):
+
+    assert Y.shape[1] == 1
+
+    ftr_names = pipeline[:-1].get_feature_names_out()
+    ftr_names = [
+                    name.split("__")[1] if "__" in name else name for name in ftr_names
+                ]
+
+    X_tf = pd.DataFrame(
+                    pipeline[:-1].transform(X), columns=ftr_names, index=X.index
+                )
+
+    categorical_features = X_tf.select_dtypes(exclude=[np.number]).columns
+    try:
+        X_tf[categorical_features] = pd.concat(
+            [
+                X_tf[cat_col].astype("category").cat.codes
+                for cat_col in categorical_features
+            ],
+            axis=1,
+        ).astype("category")
+    except:
+        pass
+
+    automl = pipeline.steps[1][1]
+    ftr_subset = boruta_shap_ftr_select(
+        X_tf,
+        Y,
+        base_model=clone(automl.model.estimator),
+        plot=True,
+        n_trials=100,
+        sample=False,
+        train_or_test="test",
+        normalize=True,
+        verbose=True,
+        incl_tentative=True,
+    )
+
+
+def automl_feat_importance(pipeline, thres = 0):
+    thres = 0
+
+    ftr_names = pipeline[:-1].get_feature_names_out()
+    ftr_names = [name.split("__")[1] if "__" in name else name for name in ftr_names]
+
+    automl = pipeline.steps[1][1]
+
+    not_zeros = automl.feature_importances_ > thres
+    feat_names = pd.Series(ftr_names)[list(not_zeros)] #automl.feature_names_in_
+    feat_imp = pd.Series(automl.feature_importances_)[list(not_zeros)]
+
+    fig, ax = plt.subplots()
+    ax.barh(feat_names, feat_imp)
+    return fig
+
+
+def mlflow_track_automl_ft_imp(pipeline, country_code, dim, thres = 0):
+    automl = pipeline.steps[1][1]
+
+    mod = automl.best_estimator
+    dim = ct.clean_name_dim(dim)
+    fig = automl_feat_importance(pipeline, thres)
+    mlflow.log_figure(fig, f'plot_{country_code}_{dim}_{mod}.png')
+

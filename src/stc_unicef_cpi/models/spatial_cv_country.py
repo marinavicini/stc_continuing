@@ -88,7 +88,8 @@ df = mu.get_data_country(hexes_dhs, country_code, col='deprived_sev_count_neigh'
 
 # drop country code
 c.features.remove('country_code')
-X, Y = df[c.features], df[outputs]
+# X, Y = df[c.features], df[outputs]
+X, Y = df, df[outputs]
 XY = df
 print(XY.shape)
 
@@ -99,6 +100,12 @@ print(X_test.shape)
 
 kfold, spatial_groups = mu.select_cv_type(cv_type=cv_type, nfolds=nfolds, XY=XY, X_train=X_train)
 
+X_train['spatial_group'] = list(spatial_groups)
+X_test['test'] = True
+
+X_train_save, X_test_save = X_train.copy(), X_test.copy()
+X_train, X_test = X_train[c.features], X_test[c.features]
+
 X_train.reset_index(drop=True, inplace=True)
 X_test.reset_index(drop=True, inplace=True)
 Y_all_train.reset_index(drop=True, inplace=True)
@@ -108,6 +115,7 @@ Y_all_test.reset_index(drop=True, inplace=True)
 
 
 save = {}
+save['num_test'] = X_test.shape[0]
 
 for dim in outputs:
     Y_train = Y_all_train[dim]
@@ -120,12 +128,12 @@ for dim in outputs:
     # print(experiment_id)
 
 
-    for mod_type in ['lgbm']:
+    for mod_type in ['lgbm', 'xgboost']:
         
         num_imputer = mu.select_impute(impute=impute)
         col_tf = mu.col_transform(standardise=standardise, impute=impute)
 
-        # model
+        ##### model
 
         model = AutoML()
         automl_settings = {
@@ -157,6 +165,9 @@ for dim in outputs:
         Y_pred = pipeline.predict(X_test)
         r2 = r2_score(Y_test, Y_pred)
 
+        X_test_save[f'{dim}_{mod_type}'] = Y_pred
+        X_train_save[f'{dim}_{mod_type}'] = pipeline.predict(X_train)
+
         save[f'{dim}_{mod_type}'] = [r2]
         
         with mlflow.start_run(experiment_id=experiment_id) as run: ########
@@ -182,6 +193,7 @@ for dim in outputs:
             mu.mlflow_track_metrics(Y_pred, Y_test)
             mu.mlflow_track_automl(automl)
             mu.mlflow_plot(country_code, dim, Y_pred, Y_test) ##############################
+            mu.mlflow_track_automl_ft_imp(pipeline, country_code, dim, thres = 0)
 
         if (mod_type == 'lgbm') and (dim == 'deprived_sev_mean_neigh'):
             for cc in dhs_countries_code:
@@ -191,8 +203,16 @@ for dim in outputs:
                     r2_cc = r2_score(df_cc[dim], y_cc_pred)
                     save[cc] = [r2_cc]
         
+        df_save = pd.concat([X_train_save, X_test_save])
+        df_save.to_csv(f'/mnt/c/Users/vicin/Desktop/DSSG/Project/stc_continuing/data/processed/final/{country_code}_predictions.csv', index = False)
+
+
+
 
 print(save)
+
+data = pd.DataFrame.from_dict(save)
+data.to_csv(f'/mnt/c/Users/vicin/Desktop/DSSG/Project/stc_continuing/data/processed/final/{country_code}_results.csv', index = False)
 
 quit()
 
