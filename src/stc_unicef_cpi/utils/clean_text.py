@@ -89,7 +89,19 @@ def clean_name_dim(dim):
         'nutrition_prev_neigh':'nutrition', 
         'health_prev_neigh':'health',
         'education_prev_neigh': 'education',
-        'sumpoor_prev_neigh':'sumpoor'}
+        'sumpoor_prev_neigh':'sumpoor',
+        'sumpoor_sev':'depth', 
+        'dep_housing_sev':'housing', 
+        'dep_water_sev':'water',
+        'dep_sanitation_sev':'sanitation',
+        'dep_nutrition_sev':'nutrition', 
+        'dep_health_sev':'health',
+        'dep_education_sev':'education', 
+        'deprived_sev':'prevalence',
+        'dep_2_or_more_sev':'deprived2', 
+        'dep_3_or_more_sev':'deprived3',
+        'dep_4_or_more_sev':'deprived4'     
+        }
      
     assert dim in dic.keys()
     
