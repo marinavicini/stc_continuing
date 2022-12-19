@@ -79,7 +79,7 @@ def get_commuting_continent(iso):
 
 
 def clean_name_dim(dim):
-    dic = {'deprived_sev_mean_neigh':'deprived', 
+    dic = {'deprived_sev_mean_neigh':'prevalence', 
         '2_or_more_prev_neigh':'deprived2', 
         '3_or_more_prev_neigh':'deprived3', 
         '4_or_more_prev_neigh':'deprived4',
@@ -89,7 +89,7 @@ def clean_name_dim(dim):
         'nutrition_prev_neigh':'nutrition', 
         'health_prev_neigh':'health',
         'education_prev_neigh': 'education',
-        'sumpoor_prev_neigh':'sumpoor',
+        'sumpoor_prev_neigh':'depth',
         'sumpoor_sev':'depth', 
         'dep_housing_sev':'housing', 
         'dep_water_sev':'water',
