@@ -4,6 +4,7 @@ import logging
 import os
 import warnings
 from pathlib import Path
+import pycountry
 
 import pandas as pd
 from art import *
@@ -17,6 +18,7 @@ import stc_unicef_cpi.data.get_speedtest_data as speed
 import stc_unicef_cpi.utils.constants as c
 import stc_unicef_cpi.utils.general as g
 import stc_unicef_cpi.utils.geospatial as geo
+import stc_unicef_cpi.utils.clean_text as ct
 
 try:
     import stc_unicef_cpi.data.get_facebook_data as fb
@@ -52,6 +54,7 @@ class GoogleEarthEngineStreamer(StreamerObject):
         self.logging = logging
         self.folder = folder
         self.wd = f"{read_path}/{folder}/"
+        self.read_path = read_path
         self.res = res
         self.start = start
         self.end = end
@@ -63,11 +66,14 @@ class GoogleEarthEngineStreamer(StreamerObject):
                 g.PrettyLog(f" -- Dowloading satellite images of {self.country}...")
             )
             ge.SatelliteImages(
-                self.country, self.folder, self.res, self.start, self.end
+                self.country, self.res, self.start, self.end, self.read_path
             )
-        else:
-            file_name = "cpi_poptotal_" + self.country.lower() + "_500.tif"
-            if os.path.exists(Path(self.wd) / file_name):
+        else: 
+            country_code = ct.get_alpha3_code(self.country)
+            country_name = ct.format_country_name(self.country)
+            file_name = "cpi_poptotal_" + country_name.lower() + "_500.tif"
+
+            if os.path.exists(Path(self.wd) / country_code / file_name):
                 self.logging.info(
                     print(
                         f" -- No need to download Google Earth Engine data! Satellite images of {self.country} are already downloaded."
@@ -80,7 +86,7 @@ class GoogleEarthEngineStreamer(StreamerObject):
                     )
                 )
                 ge.SatelliteImages(
-                    self.country, self.folder, self.res, self.start, self.end
+                    self.country, self.res, self.start, self.end, self.read_path
                 )
 
 
@@ -107,12 +113,13 @@ class EconomicStreamer(StreamerObject):
                 "real_gdp",
                 "elec_cons",
                 "commuting_zones.csv",
+                "rwi"
             ]
-            if self.country == "Nigeria":
-                file_names += [
-                    "nga_education",
-                    "nga_health.csv",
-                ]
+            # if self.country == "Nigeria":
+            #     file_names += [
+            #         "nga_education",
+            #         "nga_health.csv",
+            #     ]
             if all([(Path(self.read_path) / fname).exists() for fname in file_names]):
                 self.logging.info(
                     print(
@@ -173,6 +180,8 @@ class RoadDensityStreamer(StreamerObject):
         self.implement()
 
     def implement(self):
+
+        g.create_folder(Path(self.read_path)/'road_density')
         file_name = (
             "road_density_" + self.country.lower() + "_res" + str(self.res) + ".csv"
         )
@@ -183,9 +192,9 @@ class RoadDensityStreamer(StreamerObject):
                 )
             )
             rd = osm.get_road_density(self.country, self.res)
-            rd.to_csv(Path(self.read_path) / file_name, index=False)
+            rd.to_csv(Path(self.read_path) /'road_density'/ file_name, index=False)
         else:
-            if os.path.exists(f"{self.read_path}/{file_name}"):
+            if os.path.exists(f"{self.read_path}/road_density/{file_name}"):
                 self.logging.info(
                     print(
                         f" -- No need to retrieve road density estimates! Estimates for {self.country} are already downloaded."
@@ -200,12 +209,12 @@ class RoadDensityStreamer(StreamerObject):
                 print(art("coffee"))
                 rd = osm.get_road_density(self.country, self.res)
                 print(rd)
-                rd.to_csv(Path(self.read_path) / file_name, index=False)
+                rd.to_csv(Path(self.read_path) /'road_density'/ file_name, index=False)
 
 
 @g.timing
 class SpeedTestStreamer(StreamerObject):
-    """Stream data from Open Street Map"""
+    """Stream data of Speed Test Url From Ookla"""
 
     def __init__(
         self,
@@ -253,7 +262,7 @@ class SpeedTestStreamer(StreamerObject):
 
 @g.timing
 class OpenCellStreamer(StreamerObject):
-    """Stream data from Open Street Map"""
+    """Stream data from Open Cell id"""
 
     def __init__(self, country, force, read_path, logging):
         super().__init__(country, force, read_path)
@@ -261,14 +270,16 @@ class OpenCellStreamer(StreamerObject):
         self.implement()
 
     def implement(self):
-        file_name = f"{self.country.lower()}_*.csv.gz.tmp"
+        country = self.country.lower().replace(" ", "_")
+        file_name = f"{country.lower()}_*.csv.gz.tmp"
+        save_path = f'{self.read_path}/cell_tower'
         if self.force:
             self.logging.info(
                 g.PrettyLog(f" -- Retrieving open cell id data for {self.country}...")
             )
-            cell.get_cell_data(self.country, self.read_path)
+            cell.get_cell_data(self.country, save_path)
         else:
-            if glob.glob(str(Path(self.read_path) / f"{file_name}")):
+            if glob.glob(str(Path(save_path) / f"{file_name}")):
                 self.logging.info(
                     print(
                         f" -- No need to retrieve open cell id data! Estimates for {self.country} are already downloaded."
@@ -280,7 +291,7 @@ class OpenCellStreamer(StreamerObject):
                         f" -- Retrieving open cell id data for {self.country}..."
                     )
                 )
-                cell.get_cell_data(self.country, self.read_path)
+                cell.get_cell_data(self.country, save_path)
 
 
 @g.timing

@@ -12,7 +12,7 @@ import wget
 import yaml  # type: ignore
 from tqdm.auto import tqdm
 
-from stc_unicef_cpi.utils.constants import open_cell_colnames
+import stc_unicef_cpi.utils.constants as c
 
 
 def read_yaml_file(yaml_file):
@@ -21,6 +21,7 @@ def read_yaml_file(yaml_file):
     try:
         with open(yaml_file) as f:
             config = yaml.safe_load(f)
+            print(config)
     except:
         raise FileNotFoundError("Couldn't load the file")
 
@@ -97,7 +98,7 @@ def create_folder(dir):
         os.mkdir(dir)
 
 
-def read_csv_gzip(args, colnames=open_cell_colnames):
+def read_csv_gzip(args, colnames=c.open_cell_colnames):
 
     df = pd.read_csv(
         args,
@@ -105,7 +106,8 @@ def read_csv_gzip(args, colnames=open_cell_colnames):
         sep=",",
         names=colnames,
         quotechar='"',
-        error_bad_lines=False,
+        # error_bad_lines=False,
+        on_bad_lines = 'warn',
         header=None,
     )
     return df
@@ -159,3 +161,10 @@ def download_unzip(url, name):
 
     download_file(url, name)
     unzip_file(name)
+
+
+
+def subset_dic(lis, dic = c.agg_fn):
+    '''Return a subset of dictionary with keys belonging to list'''
+    dic_fin = {key: dic[key] for key in lis if key in dic.keys()}
+    return dic_fin

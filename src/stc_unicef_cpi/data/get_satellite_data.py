@@ -6,16 +6,15 @@ import stc_unicef_cpi.utils.constants as c
 import stc_unicef_cpi.utils.clean_text as ct
 
 class SatelliteImages:
-    """Get Satellite Images From Google Earth Engine"""
+    """Get Satellite Images From Google Earth Engine 
+    and download them to Google Drive in a folder called with the country code"""
 
     def __init__(
-        self, country, folder=c.folder_ee, res=c.res_ee, start=c.start_ee, end=c.end_ee
+        self, country, res=c.res_ee, start=c.start_ee, end=c.end_ee, read_path = None
     ):
         """Initialize class
         :param country: country
         :type country: str
-        :param folder: folder path
-        :type folder: str
         :param res: grid resolution
         :type res: int
         :param start: starting date
@@ -23,19 +22,26 @@ class SatelliteImages:
         :param end: ending date
         :type end: str
         """
-        country_record = pycountry.countries.search_fuzzy(country)[0]
-        self.country = ct.clean_string_gee(country_record.name)
-        self.country_code = country_record.alpha_3
-        self.folder = folder + "/" + self.country
+        self.country_code = ct.get_alpha3_code(country)
+        self.country = ct.format_country_name(country)
+
+        self.folder = self.country_code
         self.res = res
         self.start = start
         self.end = end
+        self.read_path = read_path
         self.get_satellite_images()
 
     def get_country_boundaries(self):
         """Get countries boundaries"""
-        countries = ee.FeatureCollection("FAO/GAUL/2015/level0").select("ADM0_NAME")
-        ctry = countries.filter(ee.Filter.eq("ADM0_NAME", self.country))
+        if self.read_path is None:
+            countries = ee.FeatureCollection("FAO/GAUL/2015/level0").select("ADM0_NAME")
+            ctry = countries.filter(ee.Filter.eq("ADM0_NAME", self.country))
+        else:
+            gaul_code = ct.iso_to_gaul_code(self.country_code, self.read_path)
+            countries = ee.FeatureCollection("FAO/GAUL/2015/level0").select("ADM0_CODE")
+            ctry = countries.filter(ee.Filter.eq("ADM0_CODE", gaul_code))
+            
         geo = ctry.geometry()
 
         return ctry, geo
@@ -406,6 +412,7 @@ class SatelliteImages:
         start_date, end_date = ee.Date(self.start), ee.Date(self.end)
         ctry, geo = self.get_country_boundaries()
         transform, proj = self.get_projection()
+        self.get_healthcare_data(transform, proj, ctry, geo) 
         self.get_pop_data(transform, proj, geo)
         self.get_precipitation_data(transform, proj, ctry, geo, start_date, end_date)
         self.get_copernicus_data(transform, proj, ctry, geo, start_date, end_date)
@@ -415,5 +422,4 @@ class SatelliteImages:
         self.get_pollution_data(transform, proj, ctry, geo, start_date, end_date)
         self.get_topography_data(transform, proj, ctry, geo)
         self.get_nighttime_data(transform, proj, ctry, geo, start_date, end_date)
-        self.get_healthcare_data(transform, proj, ctry, geo) 
 
