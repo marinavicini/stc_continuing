@@ -58,11 +58,8 @@ class SatelliteImages:
 
         return proj["transform"], proj["crs"]
 
-    
-
     def task_config(self, geo, name, image, transform, proj) -> dict:
         """Determine countries parameters"""
-
         config = {
             "region": geo,
             "description": f"{name}_{self.country.lower()}_{self.res}",
@@ -425,4 +422,4 @@ class SatelliteImages:
         self.get_pollution_data(transform, proj, ctry, geo, start_date, end_date)
         self.get_topography_data(transform, proj, ctry, geo)
         self.get_nighttime_data(transform, proj, ctry, geo, start_date, end_date)
-    
+
