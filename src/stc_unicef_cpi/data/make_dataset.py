@@ -298,9 +298,13 @@ def preprocessed_speed_test(speed, res, country) -> pd.DataFrame:
     # now use low res to roughly clip
     world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
     ctry = world[world.iso_a3 == ctry_code]
-    bd_series = speed.geometry.str.replace(r"POLYGON\s\(+|\)", "").str.split(r"\s|,\s")
-    speed["min_x"] = bd_series.str[0].astype("float")
-    speed["max_y"] = bd_series.str[-1].astype("float")
+    # bd_series = speed.geometry.str.replace(r"POLYGON\s\(+|\)", "").str.split(r"\s|,\s")
+    # speed["min_x"] = bd_series.str[0].astype("float")
+    # speed["max_y"] = bd_series.str[-1].astype("float")
+    bd_series = speed.geometry.str.extract(r'(-?\d+\.\d+)\s+(-?\d+\.\d+)', expand=False).astype(float)
+    bd_series.columns = ['min_x', 'max_y']
+    speed["min_x"] = bd_series['min_x']
+    speed['max_y'] = bd_series['max_y']
     if ctry.shape[0]>0: 
         minx, miny, maxx, maxy = ctry.bounds.values.T.squeeze()
     else:
@@ -781,11 +785,6 @@ def create_dataset(
             index=False,
         )
         print("complete:", len(complete))
-        # TO BE DELETED
-        complete.to_csv(
-            Path(save_dir) / f"final/NO_DHS/hexes_{country_code}_res{res}_thres{threshold}_all.csv",
-            index=False,
-        )
     else:
         print(f"Merging target variable to hexagons in {country}")
         complete = complete.merge(train, on="hex_code", how="left")
