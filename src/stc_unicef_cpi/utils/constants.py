@@ -231,3 +231,25 @@ url_commuting_zones = "https://data.humdata.org/dataset/b7aaa3d7-cca2-4364-b7ce-
 
 # Url country codes
 url_country_codes = 'https://pkgstore.datahub.io/core/country-codes/country-codes_csv/data/c4df23af89a9386f92cbddcd54bc9852/country-codes_csv.csv'
+
+
+
+
+
+features = ['win_population_commuting', 'win_roads_km_commuting',
+       'area_commuting', 'n_conflicts', 
+       'road_density', 'avg_d_kbps', 'avg_u_kbps', 'GSM', 'LTE', 'UMTS',
+       'avg_signal', 'elevation', 'evapotrans', 'ndvi', 'ndwi', 'avg_rad',
+       'cf_cvg', 'pdsi', 'Optical_Depth_047', 'Optical_Depth_055', 'precimean',
+       'precistd', 'slope', '2019gdp', 'africa', 'ec2019', 'GDP_PPP_1990',
+       'GDP_PPP_2000', 'GDP_PPP_2015', 'child_pop', 'rwi', 'rwi_error',
+       'precipiacc',
+       'cnfd', 'accessibility', 'accessibility_walking_only', 'population',
+       'M_0', 'M_1', 'M_5', 'M_10', 'M_15', 'M_30', 'M_20', 'M_25', 'M_35',
+       'M_40', 'M_45', 'M_50', 'M_55', 'M_60', 'M_70', 'M_75', 'M_65', 'M_80',
+       'F_0', 'F_1', 'F_5', 'F_10', 'F_15', 'F_20', 'F_25', 'F_30', 'F_35',
+       'F_40', 'F_45', 'F_60', 'F_50', 'F_55', 'F_65', 'F_70', 'F_75', 'F_80',
+       'NR', 'CDMA', 'water_surface', 'no_built', 'build_2000_2014',
+       'build_1990_2000', 'build_1975_1990', 'build_prior_1975',
+       'country_code'
+       ]

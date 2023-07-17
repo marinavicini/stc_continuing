@@ -57,6 +57,11 @@ def get_alpha3_code(country):
     country_code = pycountry.countries.get(name = country).alpha_3
     return country_code
 
+def get_alpha2_code(country_code):
+    '''Return 2 letter code from a 3 letter code'''
+    iso_2 = pc.country_alpha3_to_country_alpha2(country_code)
+    return iso_2
+
 
 def iso3_to_continent_name(iso):
     '''From a country iso code return continent name'''
@@ -75,3 +80,34 @@ def get_commuting_continent(iso):
         return commuting_continent_names[continent_name]
     else:
         return continent_name
+
+
+def clean_name_dim(dim):
+    dic = {'deprived_sev_mean_neigh':'prevalence', 
+        '2_or_more_prev_neigh':'deprived2', 
+        '3_or_more_prev_neigh':'deprived3', 
+        '4_or_more_prev_neigh':'deprived4',
+        'housing_prev_neigh':'housing', 
+        'water_prev_neigh':'water', 
+        'sanitation_prev_neigh':'sanitation', 
+        'nutrition_prev_neigh':'nutrition', 
+        'health_prev_neigh':'health',
+        'education_prev_neigh': 'education',
+        'sumpoor_prev_neigh':'depth',
+        'sumpoor_sev':'depth', 
+        'dep_housing_sev':'housing', 
+        'dep_water_sev':'water',
+        'dep_sanitation_sev':'sanitation',
+        'dep_nutrition_sev':'nutrition', 
+        'dep_health_sev':'health',
+        'dep_education_sev':'education', 
+        'deprived_sev':'prevalence',
+        'dep_2_or_more_sev':'deprived2', 
+        'dep_3_or_more_sev':'deprived3',
+        'dep_4_or_more_sev':'deprived4'     
+        }
+     
+    assert dim in dic.keys()
+    
+    return dic[dim]
+
