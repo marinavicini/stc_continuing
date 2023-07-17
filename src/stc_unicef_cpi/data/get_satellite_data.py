@@ -5,12 +5,13 @@ import pycountry
 import stc_unicef_cpi.utils.constants as c
 import stc_unicef_cpi.utils.clean_text as ct
 
+
 class SatelliteImages:
-    """Get Satellite Images From Google Earth Engine 
+    """Get Satellite Images From Google Earth Engine
     and download them to Google Drive in a folder called with the country code"""
 
     def __init__(
-        self, country, res=c.res_ee, start=c.start_ee, end=c.end_ee, read_path = None
+        self, country, res=c.res_ee, start=c.start_ee, end=c.end_ee, read_path=None
     ):
         """Initialize class
         :param country: country
@@ -41,7 +42,7 @@ class SatelliteImages:
             gaul_code = ct.iso_to_gaul_code(self.country_code, self.read_path)
             countries = ee.FeatureCollection("FAO/GAUL/2015/level0").select("ADM0_CODE")
             ctry = countries.filter(ee.Filter.eq("ADM0_CODE", gaul_code))
-            
+
         geo = ctry.geometry()
 
         return ctry, geo
@@ -58,11 +59,8 @@ class SatelliteImages:
 
         return proj["transform"], proj["crs"]
 
-    
-
     def task_config(self, geo, name, image, transform, proj) -> dict:
         """Determine countries parameters"""
-
         config = {
             "region": geo,
             "description": f"{name}_{self.country.lower()}_{self.res}",
@@ -202,9 +200,7 @@ class SatelliteImages:
 
         return task
 
-    def get_land_use_data(
-        self, transform, proj, ctry, geo, name="cpi_ghsl"
-    ) -> dict:
+    def get_land_use_data(self, transform, proj, ctry, geo, name="cpi_ghsl") -> dict:
         """Get land use data
         :param transform: transform between projected coordinates and the base coordinate system
         :type transform: list
@@ -264,7 +260,7 @@ class SatelliteImages:
     def get_ndvi_data(
         self, transform, proj, ctry, geo, start_date, end_date, name="cpi_ndvi"
     ) -> dict:
-        """Get Normalized Difference Vegetation Index 
+        """Get Normalized Difference Vegetation Index
         :param transform: transform between projected coordinates and the base coordinate system
         :type transform: list
         :param proj: the base coordinate reference system
@@ -314,6 +310,7 @@ class SatelliteImages:
         :return: task status
         :rtype: dictionary
         """
+
         def func_pio(m):
             collection = (
                 ee.ImageCollection("MODIS/006/MCD19A2_GRANULES")
@@ -415,14 +412,13 @@ class SatelliteImages:
         start_date, end_date = ee.Date(self.start), ee.Date(self.end)
         ctry, geo = self.get_country_boundaries()
         transform, proj = self.get_projection()
-        self.get_healthcare_data(transform, proj, ctry, geo) 
+        self.get_healthcare_data(transform, proj, ctry, geo)
         self.get_pop_data(transform, proj, geo)
         self.get_precipitation_data(transform, proj, ctry, geo, start_date, end_date)
-        self.get_copernicus_data(transform, proj, ctry, geo, start_date, end_date)
+        # self.get_copernicus_data(transform, proj, ctry, geo, start_date, end_date)
         self.get_land_use_data(transform, proj, ctry, geo)
         self.get_ndwi_data(transform, proj, ctry, geo, start_date, end_date)
         self.get_ndvi_data(transform, proj, ctry, geo, start_date, end_date)
         self.get_pollution_data(transform, proj, ctry, geo, start_date, end_date)
         self.get_topography_data(transform, proj, ctry, geo)
         self.get_nighttime_data(transform, proj, ctry, geo, start_date, end_date)
-    

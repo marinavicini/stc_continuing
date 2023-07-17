@@ -82,7 +82,6 @@ def get_commuting_continent(iso):
         return continent_name
 
 
-
 def clean_name_dim(dim):
     dic = {'deprived_sev_mean_neigh':'prevalence', 
         '2_or_more_prev_neigh':'deprived2', 
@@ -111,3 +110,4 @@ def clean_name_dim(dim):
     assert dim in dic.keys()
     
     return dic[dim]
+
