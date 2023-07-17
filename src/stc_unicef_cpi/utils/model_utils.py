@@ -44,7 +44,6 @@ import stc_unicef_cpi.utils.constants as c
 import stc_unicef_cpi.utils.clean_text as ct
 
 
-
 def get_data_country(data, country_code, col = 'deprived_sev_count_neigh'):
     '''select data of a country with threshold of 30'''
     df = data[data['country_code'] == country_code]
@@ -235,6 +234,7 @@ def call_experiment(client, cv_type, country_code, target):
             if exp.name
             == f"{cv_type}-{country_code}-{target}"
         ][0]
+
     return experiment_id
 
 
@@ -368,4 +368,3 @@ def mlflow_track_automl_ft_imp(pipeline, country_code, dim, thres = 0):
     dim = ct.clean_name_dim(dim)
     fig = automl_feat_importance(pipeline, thres)
     mlflow.log_figure(fig, f'plot_{country_code}_{dim}_{mod}.png')
-

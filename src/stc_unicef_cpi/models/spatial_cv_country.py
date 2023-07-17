@@ -55,8 +55,6 @@ outputs = ['deprived_sev_mean_neigh', '2_or_more_prev_neigh', '3_or_more_prev_ne
 np.random.seed(seed=42)
 
 
-################################################
-
 country_code = 'COM'
 cv_type = 'spatial'
 nfolds = 5
@@ -88,8 +86,9 @@ df = mu.get_data_country(hexes_dhs, country_code, col='deprived_sev_count_neigh'
 
 # drop country code
 c.features.remove('country_code')
-# X, Y = df[c.features], df[outputs]
-X, Y = df, df[outputs]
+X, Y = df[c.features], df[outputs]
+# X, Y = df, df[outputs]
+
 XY = df
 print(XY.shape)
 
@@ -112,7 +111,6 @@ Y_all_train.reset_index(drop=True, inplace=True)
 Y_all_test.reset_index(drop=True, inplace=True)
 
 # Y_all_train, Y_all_test = mu.select_target_transform(Y_all_train, Y_all_test, target_transform='none')
-
 
 save = {}
 save['num_test'] = X_test.shape[0]
@@ -278,7 +276,6 @@ for mod_type in ['lgbm']: #['xgboost', 'lgbm', 'rf', 'extra_tree']:
         mu.mlflow_plot(country_code, dim, Y_pred, Y_test) ##############################
 
 
-
 pipeline_best = Pipeline([("impute", col_tf), ("model", best_model)])
 pipeline_best.fit(X, Y[dim])
 
@@ -297,6 +294,7 @@ for dim in outputs:
 
     Y_train = Y_all_train[dim]
     Y_test = Y_all_test[dim]
+
     print(dim)
     dim_clean = ct.clean_name_dim(dim)
 

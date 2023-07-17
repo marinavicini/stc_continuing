@@ -57,6 +57,11 @@ def get_alpha3_code(country):
     country_code = pycountry.countries.get(name = country).alpha_3
     return country_code
 
+def get_alpha2_code(country_code):
+    '''Return 2 letter code from a 3 letter code'''
+    iso_2 = pc.country_alpha3_to_country_alpha2(country_code)
+    return iso_2
+
 
 def iso3_to_continent_name(iso):
     '''From a country iso code return continent name'''
